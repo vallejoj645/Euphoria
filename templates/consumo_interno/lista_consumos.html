@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Consumo Interno{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>Consumo Interno</h1>
+    <p class="subtitle">Registro de productos retirados para consumo interno (solo información administrativa)</p>
+
+    <form method="GET" class="filters" style="margin: 10px 0 18px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <label>Fecha (cierre 03:00): <input type="date" name="fecha" value="{{ request.args.get('fecha','') }}"></label>
+        <label>Desde: <input type="date" name="fecha_inicio" value="{{ request.args.get('fecha_inicio','') }}"></label>
+        <label>Hasta: <input type="date" name="fecha_fin" value="{{ request.args.get('fecha_fin','') }}"></label>
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+        <a href="{{ url_for('lista_consumos_internos') }}" class="btn btn-secondary">Limpiar</a>
+        <div style="margin-left:auto;"><a href="{{ url_for('nuevo_consumo_interno') }}" class="btn btn-primary">+ Nuevo Consumo Interno</a></div>
+    </form>
+
+    <div class="info-box">
+        <div class="info-row">
+            <span class="label">Total en lista (últimos registros):</span>
+            <span class="value">${{ '{:,.0f}'.format(total_costo) }}</span>
+        </div>
+    </div>
+
+    <table class="pedidos-table" style="width:100%;">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Item</th>
+                <th>Cantidad</th>
+                <th>Costo (unidad)</th>
+                <th>Costo Total</th>
+                <th>Registrado por</th>
+                <th>Notas</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in consumos %}
+            <tr>
+                <td>{{ c.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+                <td>{{ c.item.nombre }}</td>
+                <td class="text-right">{{ c.cantidad }}</td>
+                <td class="text-right">${{ '{:,.0f}'.format(c.costo) }}</td>
+                <td class="text-right">${{ '{:,.0f}'.format(c.costo * c.cantidad) }}</td>
+                <td>{{ c.usuario.nombre if c.usuario else '—' }}</td>
+                <td>{{ c.notas or '' }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('eliminar_consumo_interno', consumo_id=c.id) }}" onsubmit="return confirm('Eliminar registro?')">
+                        <button type="submit" class="btn btn-secondary btn-sm">🗑️</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cocina – Restaurante</title>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        :root {
+            --bg:           #EBEBEB;
+            --surface:      #FFFFFF;
+            --surface2:     #F5F5F5;
+            --border:       #E0E0E0;
+            --border2:      #D0D0D0;
+            --text:         #111111;
+            --text2:        #555555;
+            --text3:        #999999;
+            --black:        #111111;
+            --white:        #FFFFFF;
+            --green:        #22C55E;
+            --green-bg:     #DCFCE7;
+            --amber:        #F59E0B;
+            --amber-bg:     #FEF3C7;
+            --red:          #EF4444;
+            --red-bg:       #FEE2E2;
+            --cyan:         #0EA5E9;
+            --cyan-bg:      #E0F2FE;
+            --radius-card:  14px;
+            --radius-btn:   8px;
+            --shadow-card:  0 2px 8px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.06);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Nunito', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* ── TOPBAR ──────────────────────────────── */
+        .topbar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 1px 4px rgba(0,0,0,.06);
+        }
+        .topbar-inner {
+            max-width: 1800px; margin: 0 auto;
+            padding: 0 1.5rem;
+            height: 52px;
+            display: flex; align-items: center; gap: 1.5rem;
+        }
+        .topbar-brand, .stat strong, .refresh-pill,
+        .order-badge, .mesa-num, .ticket-time,
+        .item-qty, .ticket-pid {
+        }
+
+        .topbar-brand {
+            display: flex; align-items: center; gap: .5rem;
+            font-family: 'Nunito', sans-serif;
+            font-size: .9rem; font-weight: 600;
+            color: var(--text); text-decoration: none;
+        }
+        .topbar-brand svg { width: 18px; height: 18px; stroke: var(--text); }
+
+        .topbar-divider {
+            width: 1px; height: 20px;
+            background: var(--border2);
+        }
+
+        .topbar-stats {
+            display: flex; align-items: center; gap: 1.25rem;
+            flex: 1;
+        }
+        .stat {
+            display: flex; align-items: center; gap: .4rem;
+            font-size: .85rem; color: var(--text2); font-weight: 500;
+        }
+        .stat strong {
+            font-size: 1rem; font-weight: 700;
+            color: var(--text); font-family: 'Nunito', sans-serif;
+        }
+
+        .topbar-right {
+            display: flex; align-items: center; gap: .75rem;
+            margin-left: auto;
+        }
+        .refresh-pill {
+            display: inline-flex; align-items: center; gap: .4rem;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: .28rem .75rem;
+            font-family: 'Nunito', sans-serif;
+            font-size: .75rem; color: var(--text3);
+        }
+        .refresh-pill .dot-live {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 0 2px rgba(34,197,94,.25);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%,100% { box-shadow: 0 0 0 2px rgba(34,197,94,.25); }
+            50%      { box-shadow: 0 0 0 5px rgba(34,197,94,.15); }
+        }
+        .refresh-pill.updating .dot-live {
+            background: var(--amber);
+            box-shadow: 0 0 0 2px rgba(245,158,11,.25);
+        }
+
+        .btn-nav {
+            display: inline-flex; align-items: center; gap: .35rem;
+            padding: .3rem .75rem;
+            border-radius: var(--radius-btn);
+            font-size: .8rem; font-weight: 600;
+            text-decoration: none; border: 1px solid var(--border);
+            background: var(--surface2); color: var(--text2);
+            cursor: pointer; transition: all .15s;
+        }
+        .btn-nav:hover { background: var(--border); color: var(--text); }
+        .btn-nav svg { width: 13px; height: 13px; }
+
+        /* ── BOARD ───────────────────────────────── */
+        .board {
+            padding: 1rem 1.25rem;
+            display: grid;
+            /* columnas que se adaptan: mínimo 220px, máximo 1fr;
+               con muchos pedidos quedan más angostas, con pocos más anchas */
+            grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+            gap: .85rem;
+            align-items: start;
+        }
+
+        /* ── TICKET CARD ─────────────────────────── */
+        .ticket {
+            width: 100%;
+            background: var(--surface);
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+            display: flex; flex-direction: column;
+            border-top: 4px solid var(--green);
+        }
+        .ticket.urgency-warm { border-top-color: var(--amber); }
+        .ticket.urgency-hot  { border-top-color: #F97316; }
+        .ticket.urgency-fire {
+            border-top-color: var(--red);
+            animation: fire-pulse 1.4s ease-in-out infinite;
+        }
+        @keyframes fire-pulse {
+            0%,100% { box-shadow: var(--shadow-card); }
+            50%      { box-shadow: 0 4px 20px rgba(239,68,68,.25), 0 0 0 1px rgba(239,68,68,.15); }
+        }
+
+        /* ── CARD HEADER ─────────────────────────── */
+        .ticket-head {
+            padding: .75rem 1rem .65rem;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+        .ticket-order {
+            display: flex; align-items: center; gap: .55rem;
+        }
+        .order-badge {
+            background: var(--black); color: var(--white);
+            font-family: 'Nunito', sans-serif;
+            font-size: .65rem; font-weight: 600;
+            padding: .15rem .4rem; border-radius: 5px;
+        }
+        .mesa-label {
+            font-size: .75rem; font-weight: 500; color: var(--text3);
+        }
+        .mesa-num {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.6rem; font-weight: 700;
+            color: var(--text); line-height: 1;
+        }
+
+        .ticket-time {
+            display: flex; align-items: center; gap: .3rem;
+            font-family: 'Nunito', sans-serif;
+            font-size: .75rem; color: var(--text3);
+        }
+        .ticket-time svg { width: 13px; height: 13px; stroke: var(--text3); }
+        .ticket-time.warn { color: var(--amber); }
+        .ticket-time.warn svg { stroke: var(--amber); }
+        .ticket-time.fire { color: var(--red); font-weight: 600; }
+        .ticket-time.fire svg { stroke: var(--red); }
+
+        /* ── ITEMS ───────────────────────────────── */
+
+        /* El ticket es el container de referencia para el query */
+        .ticket { container-type: inline-size; }
+
+        .ticket-items {
+            display: grid;
+            grid-template-columns: 1fr;   /* 1 columna por defecto */
+        }
+
+        /* Cuando la tarjeta mide ≥ 360 px → 2 columnas de ítems */
+        @container (min-width: 360px) {
+            .ticket-items {
+                grid-template-columns: 1fr 1fr;
+            }
+            /* línea divisoria vertical entre las dos columnas */
+            .item-row:nth-child(odd) {
+                border-right: 1px solid var(--border);
+            }
+            /* última fila: quitar borde inferior */
+            .item-row:nth-last-child(1),
+            .item-row:nth-last-child(2):nth-child(odd) {
+                border-bottom: none;
+            }
+        }
+
+        .item-row {
+            display: grid;
+            grid-template-columns: 28px 1fr auto;
+            gap: .3rem .5rem;
+            align-items: center;
+            padding: .55rem .85rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .item-row:last-child { border-bottom: none; }
+
+        .item-qty {
+            width: 28px; height: 28px;
+            background: var(--black); color: var(--white);
+            font-family: 'Nunito', sans-serif;
+            font-size: .8rem; font-weight: 600;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 6px; flex-shrink: 0;
+        }
+        .item-qty.preparando { background: var(--cyan); }
+
+        /* Bloque de texto: nombre + nota apilados */
+        .item-info {
+            min-width: 0;
+            display: flex; flex-direction: column; gap: .1rem;
+        }
+        .item-name {
+            font-size: .92rem; font-weight: 500;
+            color: var(--text); line-height: 1.3;
+        }
+        .item-nota {
+            font-size: .78rem; font-weight: 500;
+            color: var(--amber);
+            white-space: normal;
+            line-height: 1.35;
+        }
+
+        /* ── BUTTONS ─────────────────────────────── */
+        .btn-item {
+            display: inline-flex; align-items: center; gap: .25rem;
+            padding: .28rem .55rem;
+            border-radius: 6px;
+            font-size: .72rem; font-weight: 600;
+            font-family: 'Nunito', sans-serif;
+            text-decoration: none; cursor: pointer;
+            border: none; white-space: nowrap;
+            transition: opacity .15s, transform .1s;
+        }
+        .btn-item:active { transform: scale(.97); }
+        .btn-item svg { width: 12px; height: 12px; }
+
+        .btn-start {
+            background: var(--black); color: var(--white);
+        }
+        .btn-start svg { stroke: var(--white); }
+        .btn-start:hover { opacity: .85; }
+
+        .btn-done {
+            background: var(--green); color: var(--white);
+        }
+        .btn-done svg { stroke: var(--white); }
+        .btn-done:hover { opacity: .85; }
+
+        /* ── CARD FOOTER ─────────────────────────── */
+        .ticket-footer {
+            padding: .55rem 1rem;
+            border-top: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--surface2);
+        }
+        .ticket-mesero {
+            display: flex; align-items: center; gap: .35rem;
+            font-size: .75rem; color: var(--text3); font-weight: 500;
+        }
+        .ticket-mesero svg { width: 12px; height: 12px; stroke: var(--text3); }
+        .ticket-pid {
+            font-family: 'Nunito', sans-serif;
+            font-size: .72rem; color: var(--text3);
+        }
+
+        /* ── EMPTY STATE ─────────────────────────── */
+        .empty-board {
+            width: 100%; padding: 4rem 2rem;
+            display: flex; flex-direction: column; align-items: center; gap: 1rem;
+        }
+        .empty-icon {
+            width: 60px; height: 60px;
+            background: var(--green-bg);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .empty-icon svg { stroke: var(--green); width: 28px; height: 28px; }
+        .empty-board h2 { font-size: 1.25rem; color: var(--text); }
+        .empty-board p  { font-size: .9rem; color: var(--text3); }
+
+        /* ── TOAST ───────────────────────────────── */
+        .toast {
+            position: fixed; top: 64px; right: 1.25rem;
+            background: var(--black); color: var(--white);
+            padding: .75rem 1.1rem;
+            border-radius: 10px;
+            display: none; align-items: center; gap: .6rem;
+            z-index: 2000; min-width: 230px; max-width: 320px;
+            box-shadow: 0 8px 32px rgba(0,0,0,.2);
+            animation: slide-in .3s ease-out;
+        }
+        @keyframes slide-in { from { opacity:0; transform:translateX(110%); } to { opacity:1; transform:translateX(0); } }
+        .toast.show { display: flex; }
+        .toast-icon svg { width: 16px; height: 16px; }
+        .toast-text { font-size: .85rem; font-weight: 500; }
+
+        /* ── RESPONSIVE ──────────────────────────── */
+        @media (max-width: 600px) {
+            .board { grid-template-columns: 1fr; padding: .75rem; }
+            .topbar-stats { gap: .75rem; }
+            .topbar-inner { gap: .75rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+    <div class="topbar-inner">
+        <a href="{{ url_for('dashboard') }}" class="topbar-brand">
+            <i data-lucide="utensils"></i>
+            Cocina
+        </a>
+
+        <div class="topbar-divider"></div>
+
+        <div class="topbar-stats">
+            <span class="stat">
+                <strong id="total-pedidos">{{ pedidos|length }}</strong>
+                pedidos
+            </span>
+            <span class="stat">
+                <strong id="pendientes-count">{{ pedidos|selectattr('estado','equalto','pendiente')|list|length }}</strong>
+                pendientes
+            </span>
+            <span class="stat">
+                <strong id="preparando-count">{{ pedidos|selectattr('estado','equalto','preparando')|list|length }}</strong>
+                en preparación
+            </span>
+        </div>
+
+        <div class="topbar-right">
+            <button onclick="playAlertSound(); showToast('🔊 Sonido activo', 'ok')" class="btn-nav">
+                <i data-lucide="volume-2"></i> Sonido
+            </button>
+            <span class="refresh-pill" id="refresh-status">
+                Actualiza cada <span id="countdown">3</span>s
+                <span class="dot-live"></span>
+            </span>
+            <a href="{{ url_for('dashboard') }}" class="btn-nav">
+                <i data-lucide="layout-dashboard"></i> Dashboard
+            </a>
+            <a href="{{ url_for('logout') }}" class="btn-nav">Salir</a>
+        </div>
+    </div>
+</header>
+
+<!-- BOARD -->
+<div id="pedidos-container">
+{% if pedidos_por_mesa %}
+<div class="board" id="pedidos-grid">
+
+    {% for grupo in pedidos_por_mesa %}
+    {% set minutos = ((now - grupo.pedidos[0].fecha).total_seconds() // 60)|int if now else 0 %}
+
+    <div class="ticket {% if minutos > 20 %}urgency-fire{% elif minutos > 15 %}urgency-hot{% elif minutos > 8 %}urgency-warm{% else %}urgency-ok{% endif %}"
+         data-id="{{ grupo.pedidos[0].id }}">
+
+        <!-- HEADER -->
+        <div class="ticket-head">
+            <div class="ticket-order">
+                <span class="order-badge">#{{ loop.index }}</span>
+                <div>
+                    <div class="mesa-label">Mesa</div>
+                    <div class="mesa-num">{{ grupo.mesa.numero }}</div>
+                </div>
+            </div>
+            <span class="ticket-time {% if minutos > 15 %}fire{% elif minutos > 8 %}warn{% endif %}"
+                  data-minutos="{{ minutos }}">
+                <i data-lucide="clock"></i>
+                <span class="elapsed">{{ minutos }} min</span>
+            </span>
+        </div>
+
+        <!-- ÍTEMS -->
+        <div class="ticket-items">
+            {% for pedido in grupo.pedidos %}
+            <div class="item-row" data-id="{{ pedido.id }}">
+                <span class="item-qty {% if pedido.estado == 'preparando' %}preparando{% endif %}">
+                    {{ pedido.cantidad }}
+                </span>
+                <div class="item-info">
+                    <span class="item-name">{{ pedido.producto }}</span>
+                    {% if pedido.notas %}
+                    <span class="item-nota">⚠ {{ pedido.notas }}</span>
+                    {% endif %}
+                </div>
+                {% if pedido.estado == 'pendiente' %}
+                <a href="{{ url_for('actualizar_estado', pedido_id=pedido.id, estado='preparando') }}"
+                   class="btn-item btn-start">
+                    <i data-lucide="flame"></i> Preparar
+                </a>
+                {% elif pedido.estado == 'preparando' %}
+                <a href="{{ url_for('actualizar_estado', pedido_id=pedido.id, estado='listo') }}"
+                   class="btn-item btn-done">
+                    <i data-lucide="check-circle"></i> Listo
+                </a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- FOOTER -->
+        <div class="ticket-footer">
+            <span class="ticket-mesero">
+                <i data-lucide="user"></i>
+                {{ grupo.pedidos[0].mesero.nombre }}
+            </span>
+            <span class="ticket-pid">#{{ grupo.pedidos[0].id }}</span>
+        </div>
+
+    </div>
+    {% endfor %}
+
+</div>
+{% else %}
+<div class="empty-board">
+    <div class="empty-icon"><i data-lucide="sparkles"></i></div>
+    <h2>Sin pedidos pendientes</h2>
+    <p>Todo al día — sin ítems en cocina</p>
+</div>
+{% endif %}
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+    <span class="toast-icon"><i data-lucide="bell"></i></span>
+    <div class="toast-text"></div>
+</div>
+
+<script>
+    lucide.createIcons();
+
+    /* ── IDs conocidos ── */
+    let knownIds = new Set();
+    document.querySelectorAll('[data-id]').forEach(el => knownIds.add(el.dataset.id));
+
+    let hasInteracted = false;
+    let lastSound = 0;
+    let countdown = 3;
+    let isChecking = false;
+
+    /* ── Sonido ── */
+    function createAlertSound() {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        return function () {
+            if (!hasInteracted) return;
+            const now = Date.now();
+            if (now - lastSound < 5000) return;
+            lastSound = now;
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    const o = ctx.createOscillator(), g = ctx.createGain();
+                    o.connect(g); g.connect(ctx.destination);
+                    o.type = 'square';
+                    o.frequency.setValueAtTime(880, ctx.currentTime);
+                    o.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + .25);
+                    g.gain.setValueAtTime(.55, ctx.currentTime);
+                    g.gain.exponentialRampToValueAtTime(.01, ctx.currentTime + .28);
+                    o.start(ctx.currentTime); o.stop(ctx.currentTime + .3);
+                }, i * 380);
+            }
+            if (navigator.vibrate) navigator.vibrate([200,80,200,80,400]);
+        };
+    }
+    const playAlertSound = createAlertSound();
+
+    document.addEventListener('click', () => { hasInteracted = true; }, { once: true });
+    document.addEventListener('keydown', () => { hasInteracted = true; }, { once: true });
+    setTimeout(() => {
+        if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+    }, 2000);
+
+    /* ── Toast ── */
+    function showToast(msg, type = 'info') {
+        const el = document.getElementById('toast');
+        el.querySelector('.toast-text').textContent = msg;
+        el.classList.add('show');
+        setTimeout(() => el.classList.remove('show'), 4500);
+    }
+
+    /* ── Tiempo de carga de página (para calcular transcurrido sin timestamps) ── */
+    const PAGE_LOAD_MS = Date.now();
+
+    /* ── Tiempos transcurridos ── */
+    function updateElapsed() {
+        // Minutos transcurridos desde que cargó la página
+        const minsSinceLoad = (Date.now() - PAGE_LOAD_MS) / 60000;
+        document.querySelectorAll('.ticket-time[data-minutos]').forEach(el => {
+            // minutos iniciales calculados por el servidor (sin bug de zona horaria)
+            const initialMins = parseInt(el.dataset.minutos, 10);
+            const mins = Math.round(initialMins + minsSinceLoad);
+            el.querySelector('.elapsed').textContent = mins + ' min';
+            el.className = 'ticket-time' + (mins > 15 ? ' fire' : mins > 8 ? ' warn' : '');
+            // actualizar urgencia del ticket padre
+            const ticket = el.closest('.ticket');
+            if (ticket) {
+                ticket.classList.remove('urgency-ok','urgency-warm','urgency-hot','urgency-fire');
+                ticket.classList.add(mins > 20 ? 'urgency-fire' : mins > 15 ? 'urgency-hot' : mins > 8 ? 'urgency-warm' : 'urgency-ok');
+            }
+        });
+    }
+
+    /* ── Verificar nuevos pedidos ── */
+    async function checkNew() {
+        if (isChecking) return;
+        isChecking = true;
+        try {
+            const r = await fetch('/api/cocina/verificar_nuevos');
+            const d = await r.json();
+            let newOnes = [];
+            d.pedidos.forEach(p => {
+                if (!knownIds.has(p.id.toString())) {
+                    knownIds.add(p.id.toString());
+                    newOnes.push(p);
+                }
+            });
+            if (newOnes.length) {
+                playAlertSound();
+                const msg = newOnes.length === 1
+                    ? `${newOnes[0].mesa}: ${newOnes[0].cantidad}× ${newOnes[0].producto}`
+                    : `${newOnes.length} nuevos pedidos en cocina`;
+                showToast('🔔 ' + msg, 'warning');
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('Nuevo pedido', { body: msg, tag: 'cocina' });
+                }
+                setTimeout(updatePage, 400);
+            } else {
+                const tp = document.getElementById('total-pedidos');
+                const pc = document.getElementById('pendientes-count');
+                const pp = document.getElementById('preparando-count');
+                if (tp) tp.textContent = d.total;
+                if (pc) pc.textContent = d.pendientes;
+                if (pp) pp.textContent = d.preparando;
+            }
+        } catch(e) { console.error(e); } finally { isChecking = false; }
+    }
+
+    /* ── Actualizar página completa ── */
+    async function updatePage() {
+        const badge = document.getElementById('refresh-status');
+        badge.classList.add('updating');
+        try {
+            const r = await fetch(window.location.href);
+            const html = await r.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const newContainer = doc.getElementById('pedidos-container');
+            if (newContainer) {
+                document.getElementById('pedidos-container').innerHTML = newContainer.innerHTML;
+                lucide.createIcons();
+                const newIds = new Set();
+                document.querySelectorAll('[data-id]').forEach(el => newIds.add(el.dataset.id));
+                knownIds = newIds;
+            }
+            ['total-pedidos','pendientes-count','preparando-count'].forEach(id => {
+                const el = doc.getElementById(id);
+                if (el) document.getElementById(id).textContent = el.textContent;
+            });
+            updateElapsed();
+        } catch(e) { showToast('Error al actualizar', 'error'); }
+        finally { badge.classList.remove('updating'); }
+    }
+
+    /* ── Countdown ── */
+    function tick() {
+        countdown--;
+        document.getElementById('countdown').textContent = countdown;
+        if (countdown <= 0) { countdown = 3; updatePage(); }
+    }
+
+    setInterval(checkNew, 3000);
+    setInterval(tick, 1000);
+    setInterval(updateElapsed, 60000); // cada minuto es suficiente
+    updateElapsed();
+    setTimeout(checkNew, 1500);
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) { checkNew(); updatePage(); }
+    });
+
+    setTimeout(() => {
+        if (!hasInteracted) showToast('Haz click para activar el sonido', 'info');
+    }, 3500);
+</script>
+</body>
+</html>

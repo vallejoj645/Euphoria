@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrar Mesas - Restaurante</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        .navbar {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav-brand { font-size: 1.5rem; font-weight: bold; color: #667eea; }
+        .nav-menu  { display: flex; gap: 1rem; align-items: center; }
+        .nav-link  { color: #1e293b; text-decoration: none; padding: 0.5rem 1rem; border-radius: 0.5rem; transition: all 0.3s; font-weight: 500; }
+        .nav-link:hover { background: #f1f5f9; }
+        .nav-logout { color: #ef4444; }
+        .nav-user   { color: #64748b; font-size: 0.9rem; padding: 0.5rem 1rem; background: #f1f5f9; border-radius: 0.5rem; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+        .page-header { margin-bottom: 2rem; }
+        .btn-back { display: inline-block; margin-bottom: 1rem; color: #667eea; text-decoration: none; font-weight: 600; font-size: 1.1rem; }
+        .page-header h1 { font-size: 2.5rem; color: #1e293b; }
+
+        .alert { padding: 1rem; border-radius: 0.75rem; margin-bottom: 1rem; animation: slideDown 0.3s ease-out; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .alert-success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+        .alert-error   { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+
+        .admin-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; }
+        .card { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card h2 { margin-bottom: 1.5rem; color: #1e293b; font-size: 1.5rem; }
+
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #1e293b; }
+        .form-group input {
+            width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0;
+            border-radius: 0.5rem; font-size: 1rem; transition: all 0.3s;
+        }
+        .form-group input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+
+        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 0.5rem; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .btn-primary  { background: #667eea; color: white; width: 100%; }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-danger   { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-warning  { background: #f59e0b; color: white; }
+        .btn-warning:hover { background: #d97706; }
+        .btn-sm { padding: 0.5rem 1rem; font-size: 0.85rem; }
+
+        .mesas-list { display: grid; gap: 1rem; }
+        .mesa-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1.25rem; background: #f8fafc; border-radius: 0.75rem;
+            border-left: 4px solid #667eea;
+        }
+        .mesa-item.inactiva { opacity: 0.5; border-left-color: #94a3b8; }
+        .mesa-info h3 { font-size: 1.2rem; color: #1e293b; margin-bottom: 0.25rem; }
+        .mesa-info p  { color: #64748b; font-size: 0.9rem; }
+        .mesa-actions { display: flex; gap: 0.5rem; }
+
+        .badge { padding: 0.35rem 0.85rem; border-radius: 1rem; font-size: 0.8rem; font-weight: 600; margin-left: 0.5rem; }
+        .badge-success   { background: #d1fae5; color: #065f46; }
+        .badge-secondary { background: #e2e8f0; color: #64748b; }
+        .badge-name      { background: #ede9fe; color: #5b21b6; }
+
+        .tipo-selector { display: flex; gap: 0.75rem; }
+        .tipo-option {
+            display: flex; align-items: center; gap: 0.4rem; cursor: pointer;
+            padding: 0.5rem 1rem; border: 2px solid #e2e8f0; border-radius: 0.5rem;
+            font-weight: 600; transition: all 0.2s; flex: 1; justify-content: center;
+        }
+        .tipo-option:has(input:checked) { border-color: #667eea; background: #eef2ff; color: #4f46e5; }
+        .tipo-option input[type="radio"] { display: none; }
+        .hint { display: block; margin-top: 0.35rem; font-size: 0.8rem; color: #94a3b8; }
+
+        /* ══ DOMICILIOS CARD ══ */
+        .domicilios-section { margin-bottom: 2rem; }
+
+        .domicilios-card {
+            background: linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%);
+            color: white;
+            border-radius: 1.25rem;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(6,78,59,0.25);
+        }
+
+        .domicilios-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .domicilios-title { display: flex; align-items: center; gap: 0.75rem; }
+
+        .domicilios-icon {
+            width: 52px; height: 52px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem;
+        }
+
+        .domicilios-title h2 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; }
+        .domicilios-title p  { font-size: 0.85rem; opacity: 0.7; margin-top: 0.1rem; }
+
+        .domicilios-badges { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .badge-green {
+            background: rgba(255,255,255,0.15);
+            color: #d1fae5;
+            padding: 0.35rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .domicilios-body {
+            padding: 1.75rem 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .panel {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+        }
+        .panel h3 {
+            font-size: 0.9rem; font-weight: 700; opacity: 0.8;
+            margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+
+        .wa-input {
+            width: 100%;
+            padding: 0.65rem 0.9rem;
+            border-radius: 0.5rem;
+            border: 1.5px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border 0.2s;
+            margin-bottom: 0.75rem;
+        }
+        .wa-input::placeholder { color: rgba(255,255,255,0.4); }
+        .wa-input:focus { border-color: rgba(255,255,255,0.55); background: rgba(255,255,255,0.15); }
+
+        .phone-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .phone-row .wa-input { margin-bottom: 0; flex: 1; }
+
+        .btn-save {
+            padding: 0.65rem 1rem;
+            background: rgba(255,255,255,0.15);
+            border: 1.5px solid rgba(255,255,255,0.25);
+            color: white; border-radius: 0.5rem; cursor: pointer;
+            font-weight: 700; font-size: 0.85rem; transition: all 0.2s; white-space: nowrap;
+        }
+        .btn-save:hover { background: rgba(255,255,255,0.25); }
+
+        .wa-hint { font-size: 0.78rem; opacity: 0.55; }
+
+        .btn-send-wa {
+            width: 100%; padding: 0.8rem; background: #25d366; border: none;
+            border-radius: 0.5rem; color: white; font-size: 1rem; font-weight: 700;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            gap: 0.6rem; transition: all 0.2s; box-shadow: 0 4px 14px rgba(37,211,102,0.35);
+        }
+        .btn-send-wa:hover { background: #1ebe5d; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,211,102,0.45); }
+        .btn-send-wa:active { transform: translateY(0); }
+        .wa-svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 2rem; right: 2rem;
+            background: #065f46; color: white;
+            padding: 0.9rem 1.5rem; border-radius: 0.75rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            font-weight: 600; font-size: 0.95rem;
+            display: flex; align-items: center; gap: 0.5rem;
+            z-index: 9999; opacity: 0; transform: translateY(1rem);
+            transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 968px) {
+            .admin-grid { grid-template-columns: 1fr; }
+            .domicilios-body { grid-template-columns: 1fr; }
+            .domicilios-header { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="nav-brand">Punto-saludable</div>
+        <div class="nav-menu">
+            <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+            <a href="{{ url_for('administrar_usuarios') }}" class="nav-link">Usuarios</a>
+            <span class="nav-user">👤 {{ current_user.nombre }}</span>
+            <a href="{{ url_for('logout') }}" class="nav-link nav-logout">Salir</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+
+    <div class="page-header">
+        <a href="{{ url_for('dashboard') }}" class="btn-back">← Volver</a>
+        <h1>🪑 Administrar Mesas</h1>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- ══ MESA DOMICILIOS ══ -->
+    <div class="domicilios-section">
+        <div class="domicilios-card">
+
+            <div class="domicilios-header">
+                <div class="domicilios-title">
+                    <div class="domicilios-icon">🛵</div>
+                    <div>
+                        <h2>Domicilios</h2>
+                        <p>Mesa especial del sistema · No editable</p>
+                    </div>
+                </div>
+                <div class="domicilios-badges">
+                    <span class="badge-green">🔒 Protegida</span>
+                    <span class="badge-green">✅ Siempre activa</span>
+                    <span class="badge-green">♾ Sin límite de personas</span>
+                </div>
+            </div>
+
+            <div class="domicilios-body">
+
+                <!-- Panel: número domiciliario -->
+                <div class="panel">
+                    <h3>📱 Número del domiciliario</h3>
+                    <div class="phone-row">
+                        <input type="tel" id="wa-phone" class="wa-input"
+                               placeholder="+57 300 000 0000" maxlength="20">
+                        <button class="btn-save" onclick="guardarTelefono()">Guardar</button>
+                    </div>
+                    <p class="wa-hint">
+                        Incluye el indicativo del país (ej: +57 para Colombia).<br>
+                        Se guarda en este navegador automáticamente.
+                    </p>
+                </div>
+
+                <!-- Panel: notificación -->
+                <div class="panel">
+                    <h3>📦 Pedido listo para entrega</h3>
+                    <input type="text" id="wa-detalle" class="wa-input"
+                           placeholder="Ej: Pedido #42 — Ensalada César + Jugo">
+                    <button class="btn-send-wa" onclick="enviarWhatsApp()">
+                        <svg class="wa-svg" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                        Enviar por WhatsApp
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ GRID NORMAL ══ -->
+    <div class="admin-grid">
+
+        <div class="card">
+            <h2>➕ Nueva Mesa</h2>
+            <form method="POST">
+                <input type="hidden" name="accion" value="agregar">
+
+                <div class="form-group">
+                    <label>Tipo de identificador</label>
+                    <div class="tipo-selector">
+                        <label class="tipo-option">
+                            <input type="radio" name="tipo_id" value="numero" checked onchange="toggleTipoId(this.value)">
+                            <span>🔢 Número</span>
+                        </label>
+                        <label class="tipo-option">
+                            <input type="radio" name="tipo_id" value="nombre" onchange="toggleTipoId(this.value)">
+                            <span>✏️ Nombre</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group" id="campo-numero">
+                    <label for="numero">Número de Mesa *</label>
+                    <input type="number" id="numero" name="numero" min="1" placeholder="Ej: 1">
+                </div>
+
+                <div class="form-group" id="campo-nombre" style="display:none;">
+                    <label for="nombre_personalizado">Nombre de Mesa *</label>
+                    <input type="text" id="nombre_personalizado" name="nombre_personalizado"
+                           maxlength="40" placeholder="Ej: Terraza, VIP, Salón Principal…">
+                    <small class="hint">Puede incluir letras, números y espacios.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="capacidad">Capacidad (personas)</label>
+                    <input type="number" id="capacidad" name="capacidad" value="4" min="1" placeholder="Ej: 4">
+                </div>
+
+                <button type="submit" class="btn btn-primary">Agregar Mesa</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>📋 Mesas Existentes ({{ mesas|length }})</h2>
+            {% if mesas %}
+            <div class="mesas-list">
+                {% for mesa in mesas %}
+                <div class="mesa-item {% if not mesa.activa %}inactiva{% endif %}">
+                    <div class="mesa-info">
+                        <h3>
+                            {% if mesa.nombre_personalizado %}
+                                {{ mesa.nombre_personalizado }}
+                                {% if mesa.numero %}
+                                <span class="badge badge-name">#{{ mesa.numero }}</span>
+                                {% endif %}
+                            {% else %}
+                                Mesa {{ mesa.numero }}
+                            {% endif %}
+                            {% if mesa.activa %}
+                            <span class="badge badge-success">Activa</span>
+                            {% else %}
+                            <span class="badge badge-secondary">Inactiva</span>
+                            {% endif %}
+                        </h3>
+                        <p>Capacidad: {{ mesa.capacidad }} personas</p>
+                    </div>
+                    <div class="mesa-actions">
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="accion" value="toggle">
+                            <input type="hidden" name="mesa_id" value="{{ mesa.id }}">
+                            <button type="submit" class="btn btn-warning btn-sm">
+                                {% if mesa.activa %}Desactivar{% else %}Activar{% endif %}
+                            </button>
+                        </form>
+                        <form method="POST" style="display:inline;" onsubmit="return confirm('¿Eliminar esta mesa?')">
+                            <input type="hidden" name="accion" value="eliminar">
+                            <input type="hidden" name="mesa_id" value="{{ mesa.id }}">
+                            <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="text-align:center; color:#64748b; padding:2rem;">No hay mesas creadas</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+    /* ─── Toggle tipo identificador ─── */
+    function toggleTipoId(tipo) {
+        const campoNumero = document.getElementById('campo-numero');
+        const campoNombre = document.getElementById('campo-nombre');
+        const inputNumero = document.getElementById('numero');
+        const inputNombre = document.getElementById('nombre_personalizado');
+        if (tipo === 'numero') {
+            campoNumero.style.display = '';
+            campoNombre.style.display = 'none';
+            inputNumero.required = true;
+            inputNombre.required = false;
+            inputNombre.value = '';
+        } else {
+            campoNumero.style.display = 'none';
+            campoNombre.style.display = '';
+            inputNumero.required = false;
+            inputNombre.required = true;
+            inputNumero.value = '';
+        }
+    }
+
+    /* ─── Teléfono en localStorage ─── */
+    const LS_KEY = 'domicilios_wa_phone';
+
+    function guardarTelefono() {
+        const tel = document.getElementById('wa-phone').value.trim();
+        if (!tel) { alert('Ingresa un número de teléfono válido.'); return; }
+        localStorage.setItem(LS_KEY, tel);
+        mostrarToast('📱 Número guardado correctamente');
+    }
+
+    function cargarTelefono() {
+        const guardado = localStorage.getItem(LS_KEY);
+        if (guardado) document.getElementById('wa-phone').value = guardado;
+    }
+
+    /* ─── Enviar WhatsApp ─── */
+    function enviarWhatsApp() {
+        const rawPhone = document.getElementById('wa-phone').value.trim();
+        const detalle  = document.getElementById('wa-detalle').value.trim();
+
+        if (!rawPhone) {
+            alert('⚠️ Primero guarda el número del domiciliario (panel izquierdo).');
+            return;
+        }
+
+        /* Limpiar: solo dígitos y + inicial */
+        const phone = rawPhone.replace(/[\s\-().]/g, '');
+
+        const ahora = new Date();
+        const hora  = ahora.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+        const mensaje = detalle
+            ? `🛵 *PEDIDO LISTO PARA ENTREGA*\n\n📦 ${detalle}\n🕐 ${hora}\n\n¡Por favor pasa a recoger el pedido! 🙏`
+            : `🛵 *PEDIDO LISTO PARA ENTREGA*\n\n🕐 ${hora}\n\n¡Por favor pasa a recoger el pedido! 🙏`;
+
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(mensaje)}`, '_blank');
+        mostrarToast('✅ WhatsApp abierto — mensaje listo para enviar');
+    }
+
+    /* ─── Toast ─── */
+    function mostrarToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3200);
+    }
+
+    cargarTelefono();
+</script>
+</body>
+</html>

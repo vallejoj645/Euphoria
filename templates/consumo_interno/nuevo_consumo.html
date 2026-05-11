@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Nuevo Consumo Interno{% endblock %}
+{% block content %}
+<style>
+    .form-card { max-width: 800px; margin: 20px auto; background: #ffffff; padding: 26px; border-radius: 10px; box-shadow: 0 6px 18px rgba(16,24,40,0.06); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .form-card h1 { color: #1f2937; margin-bottom: 8px; }
+    .form-card .subtitle { color: #6b7280; margin-bottom: 18px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display:block; font-weight: 600; margin-bottom:6px; color:#374151; }
+    .form-group input, .form-group select, .form-group textarea { width:100%; padding:10px 12px; border:1px solid #e6eaf0; border-radius:8px; font-size:14px; transition: box-shadow .2s, border-color .2s; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:#3b82f6; box-shadow: 0 6px 18px rgba(59,130,246,0.08); }
+    .form-group textarea { min-height: 100px; resize: vertical; }
+    .form-actions { margin-top:18px; display:flex; gap:10px; }
+    .btn { padding:10px 16px; border-radius:8px; border:none; cursor:pointer; text-decoration:none; display:inline-block; }
+    .btn-success { background:#10b981; color:white; }
+    .btn-success:hover { background:#0ea56f; }
+    .btn-secondary { background:#6b7280; color:white; }
+    .hint { color:#6b7280; font-size:13px; margin-top:6px; }
+
+    /* Responsive */
+    @media (max-width:700px) { .form-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="form-card">
+    <h1>Registrar Consumo Interno</h1>
+    <p class="subtitle">Registra artículos retirados para uso interno (solo información administrativa)</p>
+
+    <form method="POST">
+        <div class="form-grid">
+            <div>
+                <div class="form-group">
+                    <label>Item</label>
+                    <select name="item_id" required>
+                        <option value="">-- Seleccionar Item --</option>
+                        {% for item in items %}
+                        <option value="{{ item.id }}">{{ item.nombre }} — ${{ '{:,.0f}'.format(item.precio) }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Cantidad</label>
+                    <input type="number" name="cantidad" min="1" value="1" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Costo para el dueño (por unidad)</label>
+                    <input type="number" name="costo" step="0.01" min="0" value="0">
+                    <div class="hint">Dejar en 0 si no aplica o si prefieres usar el precio de venta.</div>
+                </div>
+            </div>
+
+            <div>
+                <div class="form-group">
+                    <label>Usuario que retira</label>
+                    <select name="usuario_id" required>
+                        <option value="">-- Seleccionar Usuario --</option>
+                        {% for u in users %}
+                        <option value="{{ u.id }}" {% if u.id == current_user.id %}selected{% endif %}>{{ u.nombre }} {% if u.rol %}({{ u.rol }}){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Notas</label>
+                    <textarea name="notas"></textarea>
+                    <div class="hint">Opcional: motivo o detalles del retiro (p.ej. uso en cocina, muestra, rotura)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">💾 Guardar</button>
+            <a href="{{ url_for('lista_consumos_internos') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

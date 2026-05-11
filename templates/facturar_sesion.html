@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facturar Sesión - Mesa {{ sesion.mesa.numero }}</title>
+    <style>
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f5f5f5; 
+            padding: 20px; 
+        }
+        
+        .container { 
+            max-width: 900px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        
+        h1 { 
+            color: #2c3e50; 
+            margin-bottom: 10px; 
+        }
+        
+        h2 {
+            color: #34495e;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .subtitle { 
+            color: #7f8c8d; 
+            margin-bottom: 30px; 
+        }
+        
+        .info-box { 
+            background: #ecf0f1; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 25px; 
+        }
+        
+        .info-row { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 8px; 
+        }
+        
+        .label { 
+            font-weight: 600; 
+            color: #34495e; 
+        }
+        
+        .value { 
+            color: #2c3e50; 
+        }
+        
+        .pedidos-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 25px; 
+        }
+        
+        .pedidos-table th { 
+            background: #3498db; 
+            color: white; 
+            padding: 12px; 
+            text-align: left; 
+        }
+        
+        .pedidos-table td { 
+            padding: 10px; 
+            border-bottom: 1px solid #ecf0f1; 
+        }
+        
+        .pedidos-table tr:hover { 
+            background: #f8f9fa; 
+        }
+        
+        .text-right { 
+            text-align: right; 
+        }
+        
+        .totales { 
+            background: #ecf0f1; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin-bottom: 25px; 
+        }
+        
+        .total-row { 
+            display: flex; 
+            justify-content: space-between; 
+            padding: 8px 0; 
+            font-size: 16px; 
+        }
+        
+        .total-row.grand { 
+            font-size: 24px; 
+            font-weight: bold; 
+            color: #27ae60; 
+            border-top: 2px solid #27ae60; 
+            padding-top: 15px; 
+            margin-top: 10px; 
+        }
+        
+        .form-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .form-group { 
+            margin-bottom: 20px; 
+        }
+        
+        .form-group label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            color: #34495e; 
+        }
+        
+        .form-group input, 
+        .form-group select, 
+        .form-group textarea { 
+            width: 100%; 
+            padding: 10px; 
+            border: 2px solid #ecf0f1; 
+            border-radius: 5px; 
+            font-size: 14px; 
+        }
+        
+        .form-group input:focus, 
+        .form-group select:focus, 
+        .form-group textarea:focus { 
+            border-color: #3498db; 
+            outline: none; 
+        }
+        
+        .payment-methods { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+            gap: 10px; 
+            margin-bottom: 15px; 
+        }
+        
+        .payment-option { 
+            padding: 15px; 
+            border: 2px solid #ecf0f1; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            text-align: center; 
+            transition: all 0.3s; 
+        }
+        
+        .payment-option:hover { 
+            border-color: #3498db; 
+            background: #ebf5fb; 
+        }
+        
+        .payment-option input[type="radio"] { 
+            margin-right: 8px; 
+        }
+        
+        .desglose-mixto { 
+            display: none; 
+            background: #fff; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-top: 15px; 
+            border: 2px solid #3498db;
+        }
+        
+        .desglose-mixto.active { 
+            display: block; 
+        }
+        
+        .info-help {
+            background: #e7f3ff;
+            border-left: 4px solid #3498db;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #2c3e50;
+        }
+        
+        .required {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        
+        .btn { 
+            padding: 12px 30px; 
+            border: none; 
+            border-radius: 5px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            text-decoration: none; 
+            display: inline-block; 
+            margin-right: 10px; 
+            transition: all 0.3s; 
+        }
+        
+        .btn-success { 
+            background: #27ae60; 
+            color: white; 
+        }
+        
+        .btn-success:hover { 
+            background: #229954; 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
+        }
+        
+        .btn-secondary { 
+            background: #95a5a6; 
+            color: white; 
+        }
+        
+        .btn-secondary:hover { 
+            background: #7f8c8d; 
+        }
+        
+        .actions { 
+            margin-top: 30px; 
+            display: flex; 
+            gap: 10px; 
+        }
+        
+        .alert { 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+        }
+        
+        .alert-warning { 
+            background: #fff3cd; 
+            border: 1px solid #ffc107; 
+            color: #856404; 
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .payment-methods {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💳 Facturar Sesión</h1>
+        <p class="subtitle">Mesa {{ sesion.mesa.numero }} - Sesión iniciada: {{ sesion.fecha_inicio.strftime('%d/%m/%Y %H:%M') }}</p>
+        
+        {% if not sesion.pedidos %}
+        <div class="alert alert-warning">
+            ⚠️ Esta sesión no tiene pedidos asociados
+        </div>
+        {% endif %}
+        
+        <!-- Información de la Sesión -->
+        <div class="info-box">
+            <div class="info-row">
+                <span class="label">Mesa:</span>
+                <span class="value">Mesa {{ sesion.mesa.numero }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Duración:</span>
+                <span class="value">
+                    {% set duracion_segundos = (datetime.now() - sesion.fecha_inicio).total_seconds() %}
+                    {% set horas = (duracion_segundos / 3600)|int %}
+                    {% set minutos = ((duracion_segundos % 3600) / 60)|int %}
+                    {% if horas > 0 %}
+                        {{ horas }}h {{ minutos }}min
+                    {% else %}
+                        {{ minutos }} minutos
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="label">Total de items:</span>
+                <span class="value">{{ sesion.pedidos|length }} productos</span>
+            </div>
+        </div>
+        
+        <!-- Detalle de Pedidos -->
+        <h2>📋 Detalle de Pedidos</h2>
+        <table class="pedidos-table">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th class="text-right">Cant.</th>
+                    <th class="text-right">Precio Unit.</th>
+                    <th class="text-right">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pedido in sesion.pedidos %}
+                <tr>
+                    <td>{{ pedido.producto }}</td>
+                    <td class="text-right">{{ pedido.cantidad }}</td>
+                    <td class="text-right">${{ '{:,.0f}'.format(pedido.precio_unitario) }}</td>
+                    <td class="text-right">${{ '{:,.0f}'.format(pedido.cantidad * pedido.precio_unitario) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- Totales -->
+        <div class="totales">
+            <div class="total-row">
+                <span>Subtotal:</span>
+                <span>${{ '{:,.0f}'.format(subtotal) }}</span>
+            </div>
+            <div class="total-row" id="propina-display" style="display:none;">
+                <span>Propina:</span>
+                <span id="propina-valor">$0</span>
+            </div>
+            <div class="total-row grand">
+                <span>TOTAL A PAGAR:</span>
+                <span id="total-final">${{ '{:,.0f}'.format(subtotal) }}</span>
+            </div>
+        </div>
+        
+        <!-- Formulario de Facturación -->
+        <form method="POST" id="form-factura">
+            
+            <!-- Método de Pago -->
+            <div class="form-section">
+                <h2>💰 Método de Pago</h2>
+                
+                <div class="payment-methods">
+                    <label class="payment-option">
+                        <input type="radio" name="metodo_pago" value="efectivo" checked onchange="toggleDesglose()">
+                        💵 Efectivo
+                    </label>
+                    <label class="payment-option">
+                        <input type="radio" name="metodo_pago" value="tarjeta" onchange="toggleDesglose()">
+                        💳 Tarjeta
+                    </label>
+                    <label class="payment-option">
+                        <input type="radio" name="metodo_pago" value="transferencia" onchange="toggleDesglose()">
+                        📱 Transferencia
+                    </label>
+                    <label class="payment-option">
+                        <input type="radio" name="metodo_pago" value="mixto" onchange="toggleDesglose()">
+                        🔀 Mixto
+                    </label>
+                </div>
+                
+                <!-- Desglose para pago mixto -->
+                <div class="desglose-mixto" id="desglose-mixto">
+                    <h3 style="margin-bottom: 10px;">📊 Desglose de Pago</h3>
+                    <div class="form-group">
+                        <label>Efectivo</label>
+                        <input type="number" name="efectivo" step="0.01" min="0" value="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Tarjeta</label>
+                        <input type="number" name="tarjeta" step="0.01" min="0" value="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Transferencia</label>
+                        <input type="number" name="transferencia" step="0.01" min="0" value="0" placeholder="0.00">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>💵 Propina (Opcional)</label>
+                    <input type="number" name="propina" id="propina" step="0.01" min="0" value="0" oninput="calcularTotal()" placeholder="0.00">
+                    <div class="info-help">
+                        💡 La propina se sumará al total de la factura
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Estado de Pago (NUEVO) -->
+            <div class="form-section">
+                <h2>💳 Estado de Pago</h2>
+                
+                <div class="form-group">
+                    <label>¿El cliente ya pagó? <span class="required">*</span></label>
+                    <select name="estado_pago" id="selectEstadoPagoFactura" required>
+                        <option value="pagada" selected>✅ Pagó ahora (Pagada)</option>
+                        <option value="pendiente">📋 Pagará después (Crédito)</option>
+                    </select>
+                </div>
+
+                <div id="campoVencimientoFactura" style="display: none;">
+                    <div class="form-group">
+                        <label>📅 Fecha de Vencimiento <span class="required">*</span></label>
+                        <input type="date" 
+                               name="fecha_vencimiento" 
+                               id="inputVencimientoFactura">
+                        <div class="info-help">
+                            ⏰ Indica cuándo debe pagar el cliente. Aparecerá en "Cuentas por Cobrar"
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-help">
+                    <strong>ℹ️ ¿Qué significa cada opción?</strong><br>
+                    • <strong>Pagada:</strong> El cliente pagó en este momento<br>
+                    • <strong>Crédito:</strong> El cliente pagará después (se registra en Cuentas por Cobrar)
+                </div>
+            </div>
+            
+            <!-- Datos del Cliente -->
+            <div class="form-section">
+                <h2>👤 Datos del Cliente (Opcional)</h2>
+                
+                <div class="form-group">
+                    <label>Nombre del Cliente</label>
+                    <input type="text" name="cliente_nombre" placeholder="Juan Pérez" maxlength="200">
+                </div>
+                
+                <div class="form-group">
+                    <label>Documento (NIT/CC)</label>
+                    <input type="text" name="cliente_documento" placeholder="123456789" maxlength="50">
+                </div>
+                
+                <div class="info-help">
+                    💡 Estos datos son opcionales, pero recomendados si vas a dar crédito al cliente
+                </div>
+            </div>
+            
+            <!-- Notas Adicionales -->
+            <div class="form-section">
+                <h2>📝 Notas Adicionales</h2>
+                
+                <div class="form-group">
+                    <label>Observaciones</label>
+                    <textarea name="notas" rows="3" placeholder="Información adicional sobre la factura..."></textarea>
+                </div>
+            </div>
+            
+            <!-- Botones de Acción -->
+            <div class="actions">
+                <button type="submit" class="btn btn-success">✅ Generar Factura</button>
+                <a href="{{ url_for('ver_mesa', mesa_id=sesion.mesa_id) }}" class="btn btn-secondary">❌ Cancelar</a>
+            </div>
+        </form>
+    </div>
+    
+    <script>
+        const subtotalBase = {{ subtotal }};
+        
+        // Calcular total con propina
+        function calcularTotal() {
+            const propina = parseFloat(document.getElementById('propina').value) || 0;
+            const total = subtotalBase + propina;
+            
+            document.getElementById('total-final').textContent = '$' + total.toLocaleString('es-CO', {maximumFractionDigits: 0});
+            document.getElementById('propina-valor').textContent = '$' + propina.toLocaleString('es-CO', {maximumFractionDigits: 0});
+            
+            if (propina > 0) {
+                document.getElementById('propina-display').style.display = 'flex';
+            } else {
+                document.getElementById('propina-display').style.display = 'none';
+            }
+        }
+        
+        // Mostrar/ocultar desglose de pago mixto
+        function toggleDesglose() {
+            const metodoPago = document.querySelector('input[name="metodo_pago"]:checked').value;
+            const desglose = document.getElementById('desglose-mixto');
+            
+            if (metodoPago === 'mixto') {
+                desglose.classList.add('active');
+            } else {
+                desglose.classList.remove('active');
+            }
+        }
+        
+        // Mostrar/ocultar campo de vencimiento según estado de pago
+        document.getElementById('selectEstadoPagoFactura').addEventListener('change', function() {
+            const campo = document.getElementById('campoVencimientoFactura');
+            const input = document.getElementById('inputVencimientoFactura');
+            
+            if (this.value === 'pendiente') {
+                campo.style.display = 'block';
+                input.required = true;
+                
+                // Sugerir fecha de vencimiento (7 días por defecto)
+                const hoy = new Date();
+                hoy.setDate(hoy.getDate() + 7);
+                const fechaSugerida = hoy.toISOString().split('T')[0];
+                input.value = fechaSugerida;
+            } else {
+                campo.style.display = 'none';
+                input.required = false;
+                input.value = '';
+            }
+        });
+        
+        // Validación del formulario antes de enviar
+        document.getElementById('form-factura').addEventListener('submit', function(e) {
+            const metodoPago = document.querySelector('input[name="metodo_pago"]:checked').value;
+            
+            // Validar pago mixto
+            if (metodoPago === 'mixto') {
+                const efectivo = parseFloat(document.querySelector('input[name="efectivo"]').value) || 0;
+                const tarjeta = parseFloat(document.querySelector('input[name="tarjeta"]').value) || 0;
+                const transferencia = parseFloat(document.querySelector('input[name="transferencia"]').value) || 0;
+                const propina = parseFloat(document.getElementById('propina').value) || 0;
+                
+                const totalPago = efectivo + tarjeta + transferencia;
+                const totalFactura = subtotalBase + propina;
+                
+                if (Math.abs(totalPago - totalFactura) > 0.01) {
+                    e.preventDefault();
+                    alert(`⚠️ Error en pago mixto:\n\nTotal a pagar: $${totalFactura.toLocaleString('es-CO')}\nTotal registrado: $${totalPago.toLocaleString('es-CO')}\n\nLos montos deben coincidir.`);
+                    return false;
+                }
+            }
+            
+            // Validar fecha de vencimiento si es crédito
+            const estadoPago = document.getElementById('selectEstadoPagoFactura').value;
+            if (estadoPago === 'pendiente') {
+                const fechaVencimiento = document.getElementById('inputVencimientoFactura').value;
+                if (!fechaVencimiento) {
+                    e.preventDefault();
+                    alert('⚠️ Debes especificar la fecha de vencimiento para ventas a crédito');
+                    return false;
+                }
+                
+                // Validar que la fecha no sea en el pasado
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+                const fechaSeleccionada = new Date(fechaVencimiento);
+                
+                if (fechaSeleccionada < hoy) {
+                    e.preventDefault();
+                    alert('⚠️ La fecha de vencimiento no puede ser en el pasado');
+                    return false;
+                }
+            }
+            
+            // Confirmar antes de generar
+            const confirmar = confirm('¿Confirmar la generación de esta factura?');
+            if (!confirmar) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Auto-focus en el primer campo al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            // Calcular total inicial
+            calcularTotal();
+        });
+    </script>
+</body>
+</html>

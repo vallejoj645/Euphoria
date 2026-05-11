@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial - Restaurante</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; }
+
+        /* Navbar */
+        .navbar { background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+        .nav-container { max-width: 1400px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .nav-brand { font-size: 1.5rem; font-weight: bold; color: #667eea; }
+        .nav-menu { display: flex; gap: 1rem; align-items: center; }
+        .nav-link { color: #1e293b; text-decoration: none; padding: 0.5rem 1rem; border-radius: 0.5rem; transition: all 0.3s; font-weight: 500; }
+        .nav-link:hover { background: #f1f5f9; }
+        .nav-link.active { background: #667eea; color: white; }
+        .nav-logout { color: #ef4444; }
+        .nav-user { color: #64748b; font-size: 0.9rem; padding: 0.5rem 1rem; background: #f1f5f9; border-radius: 0.5rem; }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem; }
+        .page-header { text-align: center; margin-bottom: 2.5rem; }
+        .page-header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .subtitle { color: #64748b; font-size: 1.1rem; }
+
+        /* Navegación de fechas */
+        .fecha-navegacion { max-width: 600px; margin: 0 auto 2rem; background: white; padding: 1.5rem; border-radius: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .fecha-navegacion h3 { text-align: center; margin-bottom: 1rem; }
+        .fecha-controls { display: flex; gap: 1rem; align-items: center; }
+        .fecha-controls input[type="date"] { flex: 1; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 0.5rem; font-size: 1rem; }
+        .fecha-controls button { padding: 0.75rem 1.5rem; background: #667eea; color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; }
+        .fecha-actual { text-align: center; padding: 1rem; background: #f8fafc; border-radius: 0.5rem; margin-top: 1rem; font-weight: 600; color: #667eea; }
+
+        /* Stats */
+        .historial-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { text-align: center; padding: 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 0.75rem; color: white; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); }
+        .stat-card.green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .stat-card.orange { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .stat-card.blue { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+        .stat-value { display: block; font-size: 2rem; font-weight: bold; margin-bottom: 0.25rem; }
+        .stat-label { display: block; font-size: 0.9rem; opacity: 0.9; }
+
+        /* Sesiones */
+        .historial-dia { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+        .dia-header { color: #667eea; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 3px solid #e2e8f0; font-size: 1.5rem; }
+
+        .sesiones-grid { display: grid; gap: 1.5rem; }
+        .sesion-card { background: #f8fafc; padding: 1.5rem; border-radius: 0.75rem; border-left: 4px solid #667eea; transition: all 0.3s; }
+        .sesion-card:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.1); transform: translateY(-2px); }
+        .sesion-card.activa { border-left-color: #f59e0b; background: #fffbeb; }
+        .sesion-card.facturada { border-left-color: #10b981; }
+
+        .sesion-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
+        .sesion-info h3 { color: #1e293b; font-size: 1.2rem; margin-bottom: 0.5rem; }
+        .sesion-meta { color: #64748b; font-size: 0.9rem; }
+        .sesion-total { text-align: right; }
+        .sesion-total .monto { font-size: 2rem; font-weight: bold; color: #667eea; }
+        .sesion-total .label { font-size: 0.85rem; color: #64748b; }
+
+        .badge { padding: 0.35rem 0.85rem; border-radius: 1rem; font-size: 0.8rem; font-weight: 600; display: inline-block; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .badge-info { background: #dbeafe; color: #1e40af; }
+
+        /* Pedidos en sesión */
+        .pedidos-list { margin: 1rem 0; background: white; border-radius: 0.5rem; overflow: hidden; }
+        .pedido-item { padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+        .pedido-item:last-child { border-bottom: none; }
+        .pedido-nombre { font-weight: 600; color: #1e293b; }
+        .pedido-detalle { color: #64748b; font-size: 0.85rem; margin-top: 0.25rem; }
+        .pedido-precio { font-weight: bold; color: #667eea; font-family: 'Courier New', monospace; }
+
+        /* Acciones */
+        .sesion-acciones { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+        .btn { padding: 0.5rem 1rem; border: none; border-radius: 0.5rem; font-size: 0.85rem; font-weight: 600; text-decoration: none; cursor: pointer; transition: all 0.3s; display: inline-block; text-align: center; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-warning:hover { background: #d97706; }
+
+        .empty-state { text-align: center; padding: 4rem 1rem; color: #64748b; }
+        .empty-icon { font-size: 4rem; margin-bottom: 1rem; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-container { flex-direction: column; gap: 1rem; }
+            .nav-menu { flex-wrap: wrap; justify-content: center; }
+            .page-header h1 { font-size: 2rem; }
+            .sesion-header { flex-direction: column; align-items: flex-start; }
+            .sesion-total { text-align: left; }
+            .historial-stats { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">Punto-saludable</div>
+            <div class="nav-menu">
+                <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+                <a href="{{ url_for('historial') }}" class="nav-link active">Historial</a>
+                <a href="{{ url_for('lista_facturas') }}" class="nav-link">📄 Facturas</a>
+                {% if current_user.rol == 'admin' %}
+                <a href="{{ url_for('administrar_mesas') }}" class="nav-link">Mesas</a>
+                <a href="{{ url_for('administrar_usuarios') }}" class="nav-link">Usuarios</a>
+                {% endif %}
+                <span class="nav-user">👤 {{ current_user.nombre }}</span>
+                <a href="{{ url_for('logout') }}" class="nav-link nav-logout">Salir</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>📋 Historial de Sesiones</h1>
+            <p class="subtitle">Consulta todas las sesiones y facturas por fecha</p>
+        </div>
+
+        <!-- Navegación de fechas -->
+        <div class="fecha-navegacion">
+            <h3>🗓️ Seleccionar Fecha</h3>
+            <form method="GET" class="fecha-controls">
+                <input type="date" name="fecha" id="fecha" 
+                       value="{{ fecha_seleccionada.strftime('%Y-%m-%d') if fecha_seleccionada else '' }}"
+                       max="{{ now.strftime('%Y-%m-%d') }}">
+                <button type="submit">Buscar</button>
+            </form>
+            {% if fecha_seleccionada %}
+            <div class="fecha-actual">
+                📅 Mostrando: {{ fecha_seleccionada.strftime('%d/%m/%Y') }}
+                <a href="{{ url_for('historial') }}" style="margin-left: 1rem; color: #667eea; text-decoration: none;">Ver todos</a>
+            </div>
+            {% else %}
+            <div class="fecha-actual">
+                📅 Mostrando últimos 7 días
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Historial Container -->
+        {% if sesiones_por_dia %}
+        {% for fecha, sesiones in sesiones_por_dia.items() %}
+        <div class="historial-dia">
+            <h2 class="dia-header">📅 {{ fecha }}</h2>
+            
+            <div class="historial-stats">
+                <div class="stat-card">
+                    <span class="stat-value">{{ totales_por_dia[fecha].sesiones_cerradas }}</span>
+                    <span class="stat-label">Sesiones Cerradas</span>
+                </div>
+                <div class="stat-card blue">
+                    <span class="stat-value">{{ totales_por_dia[fecha].sesiones_activas }}</span>
+                    <span class="stat-label">Sesiones Activas</span>
+                </div>
+                <div class="stat-card green">
+                    <span class="stat-value">${{ '{:,.0f}'.format(totales_por_dia[fecha].total_facturado) }}</span>
+                    <span class="stat-label">Total Facturado</span>
+                </div>
+                <div class="stat-card orange">
+                    <span class="stat-value">${{ '{:,.0f}'.format(totales_por_dia[fecha].total_sin_facturar) }}</span>
+                    <span class="stat-label">Sin Facturar</span>
+                </div>
+            </div>
+
+            <div class="sesiones-grid">
+                {% for sesion in sesiones %}
+                <div class="sesion-card {% if sesion.activa %}activa{% elif sesion.facturas %}facturada{% endif %}">
+                    <div class="sesion-header">
+                        <div class="sesion-info">
+                            <h3>🪑 Mesa {{ sesion.mesa.numero }}</h3>
+                            <div class="sesion-meta">
+                                ⏰ Inicio: {{ sesion.fecha_inicio.strftime('%H:%M') }}
+                                {% if not sesion.activa and sesion.fecha_fin %}
+                                - Fin: {{ sesion.fecha_fin.strftime('%H:%M') }}
+                                {% endif %}
+                                • {{ sesion.pedidos|length }} productos
+                            </div>
+                            {% if sesion.activa %}
+                            <span class="badge badge-warning">🔴 Activa</span>
+                            {% elif sesion.facturas %}
+                            <span class="badge badge-success">✅ Facturada</span>
+                            {% else %}
+                            <span class="badge badge-info">⏸️ Cerrada sin facturar</span>
+                            {% endif %}
+                        </div>
+                        <div class="sesion-total">
+                            <div class="monto">${{ '{:,.0f}'.format(sesion.total or 0) }}</div>
+                            <div class="label">Total</div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de pedidos -->
+                    {% if sesion.pedidos %}
+                    <div class="pedidos-list">
+                        {% for pedido in sesion.pedidos %}
+                        <div class="pedido-item">
+                            <div>
+                                <div class="pedido-nombre">{{ pedido.producto }}</div>
+                                <div class="pedido-detalle">
+                                    {{ pedido.cantidad }} x ${{ '{:,.0f}'.format(pedido.precio_unitario) }}
+                                    {% if pedido.notas %} • 📝 {{ pedido.notas }}{% endif %}
+                                </div>
+                            </div>
+                            <div class="pedido-precio">${{ '{:,.0f}'.format(pedido.cantidad * pedido.precio_unitario) }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Acciones -->
+                    <div class="sesion-acciones">
+                        <a href="{{ url_for('ver_mesa', mesa_id=sesion.mesa_id) }}" class="btn btn-primary">👁️ Ver Mesa</a>
+                        
+                        {% if sesion.facturas %}
+                            {% for factura in sesion.facturas %}
+                            <a href="{{ url_for('ver_factura', factura_id=factura.id) }}" class="btn btn-success">
+                                📄 Ver Factura {{ factura.numero_consecutivo }}
+                            </a>
+                            {% endfor %}
+                        {% elif not sesion.activa %}
+                            <a href="{{ url_for('facturar_sesion', sesion_id=sesion.id) }}" class="btn btn-warning">💳 Facturar</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <h2>No hay sesiones registradas</h2>
+            <p>Las sesiones aparecerán aquí una vez que se creen</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

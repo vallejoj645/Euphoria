@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Factura {{ factura.numero_consecutivo }}</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; }
+        .form-group { margin-bottom: 15px; }
+        label { font-weight: 600; display: block; margin-bottom: 6px; }
+        input, select, textarea { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #e6e6e6; }
+        .actions { margin-top: 20px; display: flex; gap: 10px; }
+        .btn { padding: 10px 18px; border-radius: 6px; border: none; cursor: pointer; }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-secondary { background: #95a5a6; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✏️ Editar Factura {{ factura.numero_consecutivo }}</h1>
+        <p>Mesa {{ factura.sesion.mesa.numero }} — Emitida: {{ factura.fecha_emision.strftime('%d/%m/%Y %H:%M') }}</p>
+
+        <form method="POST">
+            <div class="form-group">
+                <label>Cliente</label>
+                <input type="text" name="cliente_nombre" value="{{ factura.cliente_nombre or '' }}">
+            </div>
+            <div class="form-group">
+                <label>Documento</label>
+                <input type="text" name="cliente_documento" value="{{ factura.cliente_documento or '' }}">
+            </div>
+
+            <div class="form-group">
+                <label>Método de pago</label>
+                <select name="metodo_pago" onchange="toggleDesglose(this.value)">
+                    <option value="efectivo" {% if factura.metodo_pago == 'efectivo' %}selected{% endif %}>💵 Efectivo</option>
+                    <option value="tarjeta" {% if factura.metodo_pago == 'tarjeta' %}selected{% endif %}>💳 Tarjeta</option>
+                    <option value="transferencia" {% if factura.metodo_pago == 'transferencia' %}selected{% endif %}>📱 Transferencia</option>
+                    <option value="mixto" {% if factura.metodo_pago == 'mixto' %}selected{% endif %}>🔀 Mixto</option>
+                </select>
+            </div>
+
+            <div id="desglose" style="display: {% if factura.metodo_pago == 'mixto' %}block{% else %}none{% endif %};">
+                <div class="form-group">
+                    <label>Efectivo</label>
+                    <input type="number" name="efectivo" step="0.01" min="0" value="{{ desglose.efectivo if desglose else 0 }}">
+                </div>
+                <div class="form-group">
+                    <label>Tarjeta</label>
+                    <input type="number" name="tarjeta" step="0.01" min="0" value="{{ desglose.tarjeta if desglose else 0 }}">
+                </div>
+                <div class="form-group">
+                    <label>Transferencia</label>
+                    <input type="number" name="transferencia" step="0.01" min="0" value="{{ desglose.transferencia if desglose else 0 }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Propina</label>
+                <input type="number" name="propina" step="0.01" min="0" value="{{ factura.propina }}">
+            </div>
+
+            <div class="form-group">
+                <label>Estado de pago</label>
+                <select name="estado_pago">
+                    <option value="pagada" {% if factura.estado_pago == 'pagada' %}selected{% endif %}>Pagada</option>
+                    <option value="pendiente" {% if factura.estado_pago == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                    <option value="vencida" {% if factura.estado_pago == 'vencida' %}selected{% endif %}>Vencida</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Fecha de vencimiento</label>
+                <input type="date" name="fecha_vencimiento" value="{{ factura.fecha_vencimiento.isoformat() if factura.fecha_vencimiento else '' }}">
+            </div>
+
+            <div class="form-group">
+                <label>Notas</label>
+                <textarea name="notas" rows="4">{{ factura.notas or '' }}</textarea>
+            </div>
+
+            <div class="actions">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <a href="{{ url_for('ver_factura', factura_id=factura.id) }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+    function toggleDesglose(val) {
+        document.getElementById('desglose').style.display = (val === 'mixto') ? 'block' : 'none';
+    }
+    </script>
+</body>
+</html>

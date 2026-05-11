@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuentas por Pagar - Restaurante</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        .stat-card {
+            border-left: 4px solid;
+            transition: transform 0.2s;
+            height: 100%;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .gasto-vencido {
+            background-color: #fee;
+            border-left: 4px solid #dc3545;
+        }
+        .gasto-pendiente {
+            background-color: #fff8e1;
+            border-left: 4px solid #ffc107;
+        }
+        .gasto-row {
+            transition: background-color 0.2s;
+        }
+        .gasto-row:hover {
+            background-color: #f8f9fa;
+        }
+        .badge-vencido {
+            background: #dc3545;
+            color: white;
+        }
+        .badge-pendiente {
+            background: #ffc107;
+            color: #000;
+        }
+        .proveedor-card {
+            border-left: 4px solid #0d6efd;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('lista_gastos') }}">
+                <i class="bi bi-arrow-left"></i> Volver a Gastos
+            </a>
+            <span class="navbar-text text-white">
+                <i class="bi bi-person-circle"></i> {{ current_user.nombre }}
+            </span>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+        <!-- Encabezado -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h2><i class="bi bi-credit-card text-danger"></i> Cuentas por Pagar</h2>
+                <p class="text-muted">Control de deudas con proveedores</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{{ url_for('nuevo_gasto') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Nuevo Gasto
+                </a>
+                <a href="{{ url_for('lista_proveedores') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-building"></i> Proveedores
+                </a>
+            </div>
+        </div>
+
+        <!-- Tarjetas de Resumen -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card" style="border-left-color: #dc3545;">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Total Vencido</h6>
+                        <h3 class="mb-0 text-danger">${{ "{:,.2f}".format(total_vencido) }}</h3>
+                        <small class="text-muted">Pagos atrasados</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card" style="border-left-color: #ffc107;">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Total Pendiente</h6>
+                        <h3 class="mb-0 text-warning">${{ "{:,.2f}".format(total_pendiente) }}</h3>
+                        <small class="text-muted">Por vencer</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card" style="border-left-color: #6c757d;">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Total a Pagar</h6>
+                        <h3 class="mb-0">${{ "{:,.2f}".format(total_general) }}</h3>
+                        <small class="text-muted">Suma total</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card" style="border-left-color: #0d6efd;">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Proveedores</h6>
+                        <h3 class="mb-0 text-primary">{{ gastos_por_proveedor|length }}</h3>
+                        <small class="text-muted">Con deuda activa</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerta si hay vencidos -->
+        {% if total_vencido > 0 %}
+        <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <strong>Atención:</strong> Tienes ${{ "{:,.2f}".format(total_vencido) }} en pagos vencidos. 
+            Contacta a tus proveedores para evitar problemas.
+        </div>
+        {% endif %}
+
+        <!-- Mensajes Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Deudas por Proveedor -->
+        {% if gastos_por_proveedor %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <h4 class="mb-3"><i class="bi bi-building"></i> Resumen por Proveedor</h4>
+                <div class="row">
+                    {% for item in gastos_por_proveedor %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card proveedor-card">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ item.proveedor.nombre }}</h6>
+                                <p class="mb-1">
+                                    <strong>Deuda total:</strong> 
+                                    <span class="text-danger">${{ "{:,.2f}".format(item.total) }}</span>
+                                </p>
+                                <p class="mb-0">
+                                    <small class="text-muted">{{ item.cantidad }} gasto(s) pendiente(s)</small>
+                                </p>
+                                {% if item.proveedor.telefono %}
+                                <a href="tel:{{ item.proveedor.telefono }}" class="btn btn-sm btn-outline-primary mt-2">
+                                    <i class="bi bi-telephone"></i> {{ item.proveedor.telefono }}
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('cuentas_por_pagar') }}" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label"><i class="bi bi-filter"></i> Estado</label>
+                        <select name="estado" class="form-select">
+                            <option value="todos" {% if estado_filtro == 'todos' %}selected{% endif %}>
+                                Todos los estados
+                            </option>
+                            <option value="vencido" {% if estado_filtro == 'vencido' %}selected{% endif %}>
+                                Vencidos
+                            </option>
+                            <option value="pendiente" {% if estado_filtro == 'pendiente' %}selected{% endif %}>
+                                Pendientes
+                            </option>
+                            <option value="pagado" {% if estado_filtro == 'pagado' %}selected{% endif %}>
+                                Pagados
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label"><i class="bi bi-building"></i> Proveedor</label>
+                        <select name="proveedor_id" class="form-select">
+                            <option value="">Todos los proveedores</option>
+                            {% for prov in proveedores %}
+                            <option value="{{ prov.id }}" 
+                                    {% if proveedor_filtro == prov.id %}selected{% endif %}>
+                                {{ prov.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> Filtrar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tabla de Gastos -->
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> Detalle de Cuentas por Pagar</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if gastos %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Estado</th>
+                                <th>Fecha Gasto</th>
+                                <th>Vencimiento</th>
+                                <th>Concepto</th>
+                                <th>Proveedor</th>
+                                <th class="text-end">Monto</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for gasto in gastos %}
+                            <tr class="gasto-row {% if gasto.estado_pago == 'vencido' %}gasto-vencido{% elif gasto.estado_pago == 'pendiente' %}gasto-pendiente{% endif %}">
+                                <td>
+                                    {% if gasto.estado_pago == 'vencido' %}
+                                    <span class="badge badge-vencido">
+                                        <i class="bi bi-exclamation-triangle"></i> Vencido
+                                    </span>
+                                    {% elif gasto.estado_pago == 'pendiente' %}
+                                    <span class="badge badge-pendiente">
+                                        <i class="bi bi-clock"></i> Pendiente
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i> Pagado
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ gasto.fecha.strftime('%d/%m/%Y') }}</small>
+                                </td>
+                                <td>
+                                    {% if gasto.fecha_vencimiento %}
+                                    <strong>{{ gasto.fecha_vencimiento.strftime('%d/%m/%Y') }}</strong>
+                                    {% if gasto.estado_pago == 'vencido' %}
+                                    <br><small class="text-danger">
+                                        Vencido hace 
+                                        {{ (datetime.now().date() - gasto.fecha_vencimiento).days }} días
+                                    </small>
+                                    {% elif gasto.estado_pago == 'pendiente' %}
+                                    <br><small class="text-muted">
+                                        Vence en 
+                                        {{ (gasto.fecha_vencimiento - datetime.now().date()).days }} días
+                                    </small>
+                                    {% endif %}
+                                    {% else %}
+                                    <small class="text-muted">Sin fecha</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong>{{ gasto.concepto }}</strong>
+                                    {% if gasto.numero_factura %}
+                                    <br><small class="text-muted">
+                                        <i class="bi bi-receipt"></i> {{ gasto.numero_factura }}
+                                    </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if gasto.proveedor %}
+                                    <i class="bi bi-building"></i> {{ gasto.proveedor.nombre }}
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <strong class="text-danger">
+                                        ${{ "{:,.2f}".format(gasto.monto) }}
+                                    </strong>
+                                </td>
+                                <td>
+                                    {% if gasto.estado_pago in ['pendiente', 'vencido'] %}
+                                    <form method="POST" 
+                                          action="{{ url_for('marcar_gasto_pagado', gasto_id=gasto.id) }}" 
+                                          style="display: inline;">
+                                        <button type="submit" 
+                                                class="btn btn-sm btn-success"
+                                                onclick="return confirm('¿Confirmar que este gasto fue pagado?')">
+                                            <i class="bi bi-check-circle"></i> Marcar Pagado
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="badge bg-success">
+                                        Pagado el {{ gasto.fecha_pago_real.strftime('%d/%m/%Y') if gasto.fecha_pago_real else 'N/A' }}
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="5" class="text-end">TOTAL:</th>
+                                <th class="text-end">
+                                    <h5 class="mb-0 text-danger">
+                                        ${{ "{:,.2f}".format(total_general) }}
+                                    </h5>
+                                </th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-check-circle" style="font-size: 3rem; color: #28a745;"></i>
+                    <p class="text-muted mt-3">No tienes cuentas por pagar pendientes</p>
+                    <p class="text-success">¡Estás al día con todos tus proveedores! ✅</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Pasar datetime al JavaScript
+        const datetime = {
+            now: () => new Date()
+        };
+    </script>
+</body>
+</html>

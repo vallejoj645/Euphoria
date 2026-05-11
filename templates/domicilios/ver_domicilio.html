@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+
+{% block title %}Domicilio #{{ domicilio.id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-motorcycle"></i> Domicilio #{{ domicilio.id }}
+
+            <span class="badge" style="background-color: {{ domicilio.color_estado }};">
+                {{ domicilio.estado|upper }}
+            </span>
+
+            {% if domicilio.esta_retrasado %}
+            <span class="badge bg-danger">
+                <i class="fas fa-clock"></i> RETRASADO
+            </span>
+            {% endif %}
+        </h2>
+
+        <div>
+            <a href="{{ url_for('lista_domicilios') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+
+            {% if domicilio.estado not in ['entregado', 'cancelado'] %}
+            <a href="{{ url_for('editar_domicilio', domicilio_id=domicilio.id) }}"
+               class="btn btn-primary">
+                <i class="fas fa-edit"></i> Editar
+            </a>
+            {% endif %}
+
+            {% if domicilio.estado == 'entregado' and not domicilio.factura_id %}
+            <a href="{{ url_for('facturar_domicilio', domicilio_id=domicilio.id) }}"
+               class="btn btn-success">
+                <i class="fas fa-file-invoice-dollar"></i> Facturar
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+
+        <!-- COLUMNA IZQUIERDA -->
+        <div class="col-md-8">
+
+            <!-- INFORMACIÓN DEL CLIENTE -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h5><i class="fas fa-user"></i> Información del Cliente</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Nombre:</strong> {{ domicilio.cliente_nombre }}</p>
+                            <p><strong>Teléfono:</strong>
+                                <a href="tel:{{ domicilio.cliente_telefono }}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-phone"></i> {{ domicilio.cliente_telefono }}
+                                </a>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Dirección:</strong> {{ domicilio.cliente_direccion }}</p>
+                            {% if domicilio.cliente_barrio %}
+                            <p><strong>Barrio:</strong> {{ domicilio.cliente_barrio }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if domicilio.cliente_referencias %}
+                    <div class="alert alert-info mb-0 mt-2">
+                        <strong>Referencias:</strong> {{ domicilio.cliente_referencias }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- PRODUCTOS -->
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white">
+                    <h5><i class="fas fa-utensils"></i> Productos del Pedido</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cant.</th>
+                                    <th>Precio Unit.</th>
+                                    <th>Subtotal</th>
+                                    <th>Estado Cocina</th>
+                                    {% if current_user.rol == 'cocina' and domicilio.estado in ['pendiente', 'preparando'] %}
+                                    <th>Acción</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in domicilio.items %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.producto_nombre }}</strong>
+                                        {% if item.notas %}
+                                        <br><small class="text-muted"><i class="fas fa-sticky-note"></i> {{ item.notas }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.cantidad }}</td>
+                                    <td>${{ "{:,.0f}".format(item.precio_unitario) }}</td>
+                                    <td><strong>${{ "{:,.0f}".format(item.subtotal) }}</strong></td>
+                                    <td>
+                                        <span class="badge bg-{{ 
+                                            'success' if item.estado_cocina == 'listo'
+                                            else 'warning' if item.estado_cocina == 'preparando'
+                                            else 'secondary'
+                                        }}">
+                                            {{ item.estado_cocina|upper }}
+                                        </span>
+                                    </td>
+                                    {% if current_user.rol == 'cocina' and domicilio.estado in ['pendiente', 'preparando'] %}
+                                    <td>
+                                        <form method="POST" action="{{ url_for('actualizar_estado_item_domicilio', item_id=item.id) }}" style="display: inline;">
+                                            <input type="hidden" name="estado" value="{% if item.estado_cocina == 'pendiente' %}preparando{% elif item.estado_cocina == 'preparando' %}listo{% endif %}">
+                                            {% if item.estado_cocina == 'pendiente' %}
+                                            <button type="submit" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-fire"></i> Preparar
+                                            </button>
+                                            {% elif item.estado_cocina == 'preparando' %}
+                                            <button type="submit" class="btn btn-sm btn-success">
+                                                <i class="fas fa-check"></i> Listo
+                                            </button>
+                                            {% endif %}
+                                        </form>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Subtotal</strong></td>
+                                    <td colspan="{{ '3' if current_user.rol == 'cocina' else '2' }}">
+                                        <strong>${{ "{:,.0f}".format(domicilio.subtotal) }}</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end">Costo Domicilio</td>
+                                    <td colspan="{{ '3' if current_user.rol == 'cocina' else '2' }}">
+                                        ${{ "{:,.0f}".format(domicilio.costo_domicilio) }}
+                                    </td>
+                                </tr>
+                                {% if domicilio.propina > 0 %}
+                                <tr>
+                                    <td colspan="3" class="text-end">Propina</td>
+                                    <td colspan="{{ '3' if current_user.rol == 'cocina' else '2' }}">
+                                        ${{ "{:,.0f}".format(domicilio.propina) }}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                <tr class="table-primary">
+                                    <td colspan="3" class="text-end"><strong>TOTAL</strong></td>
+                                    <td colspan="{{ '3' if current_user.rol == 'cocina' else '2' }}">
+                                        <h5 class="mb-0">${{ "{:,.0f}".format(domicilio.total) }}</h5>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NOTAS DEL PEDIDO -->
+            {% if domicilio.notas %}
+            <div class="alert alert-info">
+                <strong><i class="fas fa-comment"></i> Notas del Pedido:</strong> {{ domicilio.notas }}
+            </div>
+            {% endif %}
+
+            <!-- INFORMACIÓN ADICIONAL -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <small class="text-muted">Pedido tomado por:</small>
+                            <p><strong>{{ domicilio.tomado_por.nombre }}</strong></p>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Hora del pedido:</small>
+                            <p><strong>{{ domicilio.fecha_pedido.strftime('%I:%M %p') }}</strong></p>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Tiempo transcurrido:</small>
+                            <p><strong>{{ domicilio.tiempo_transcurrido }}</strong></p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <small class="text-muted">Método de pago:</small>
+                            <p><strong>{{ domicilio.metodo_pago|upper }}</strong></p>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Pagado:</small>
+                            <p>
+                                {% if domicilio.pagado %}
+                                <span class="badge bg-success">SÍ</span>
+                                {% else %}
+                                <span class="badge bg-warning">PENDIENTE</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Repartidor:</small>
+                            <p><strong>{{ domicilio.domiciliario }}</strong></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA -->
+        <div class="col-md-4">
+
+            <!-- CAMBIAR ESTADO -->
+            {% if domicilio.estado not in ['entregado', 'cancelado'] and current_user.rol in ['admin', 'mesero'] %}
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h5><i class="fas fa-sync"></i> Cambiar Estado</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST"
+                          action="{{ url_for('actualizar_estado_domicilio', domicilio_id=domicilio.id) }}">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Nuevo Estado</label>
+                            <select name="estado" class="form-select" required>
+                                <option value="pendiente" {% if domicilio.estado == 'pendiente' %}selected{% endif %}>
+                                    Pendiente
+                                </option>
+                                <option value="preparando" {% if domicilio.estado == 'preparando' %}selected{% endif %}>
+                                    En Preparación
+                                </option>
+                                <option value="listo" {% if domicilio.estado == 'listo' %}selected{% endif %}>
+                                    Listo para Enviar
+                                </option>
+                                <option value="en_camino" {% if domicilio.estado == 'en_camino' %}selected{% endif %}>
+                                    En Camino
+                                </option>
+                                <option value="entregado" {% if domicilio.estado == 'entregado' %}selected{% endif %}>
+                                    Entregado
+                                </option>
+                                <option value="cancelado" style="color: red;">
+                                    Cancelado
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Asignar Repartidor</label>
+                            <select name="repartidor_id" class="form-select">
+                                <option value="">Sin asignar</option>
+                                {% for user in repartidores %}
+                                <option value="{{ user.id }}" 
+                                        {% if domicilio.repartidor_id == user.id %}selected{% endif %}>
+                                    {{ user.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <button class="btn btn-success w-100">
+                            <i class="fas fa-check"></i> Actualizar Estado
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- CANCELAR DOMICILIO -->
+            {% if domicilio.estado not in ['entregado', 'cancelado'] and current_user.rol in ['admin', 'mesero'] %}
+            <div class="card mb-3">
+                <div class="card-header bg-danger text-white">
+                    <h5><i class="fas fa-times-circle"></i> Cancelar Domicilio</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST"
+                          action="{{ url_for('cancelar_domicilio', domicilio_id=domicilio.id) }}"
+                          onsubmit="return confirm('¿Estás seguro de cancelar este domicilio?')">
+                        <div class="mb-3">
+                            <label class="form-label">Motivo de Cancelación</label>
+                            <textarea name="motivo_cancelacion" class="form-control" rows="3" 
+                                      required placeholder="Ej: Cliente no contesta, dirección incorrecta..."></textarea>
+                        </div>
+                        <button class="btn btn-danger w-100">
+                            <i class="fas fa-ban"></i> Cancelar Domicilio
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- FACTURACIÓN -->
+            {% if domicilio.estado == 'entregado' %}
+                {% if not domicilio.factura_id %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> Pedido entregado sin factura
+                    <a href="{{ url_for('facturar_domicilio', domicilio_id=domicilio.id) }}"
+                       class="btn btn-sm btn-primary mt-2 w-100">
+                        <i class="fas fa-receipt"></i> Generar Factura
+                    </a>
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> Factura generada
+                    <a href="{{ url_for('ver_factura', factura_id=domicilio.factura_id) }}"
+                       class="btn btn-sm btn-success mt-2 w-100">
+                        <i class="fas fa-eye"></i> Ver Factura
+                    </a>
+                </div>
+                {% endif %}
+            {% endif %}
+
+            <!-- INFORMACIÓN DE CANCELACIÓN -->
+            {% if domicilio.estado == 'cancelado' and domicilio.notas_cancelacion %}
+            <div class="alert alert-danger">
+                <strong><i class="fas fa-ban"></i> Cancelado</strong>
+                <p class="mb-0 mt-2">{{ domicilio.notas_cancelacion }}</p>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<!-- Auto-refresh cada 30 segundos solo si está en proceso -->
+{% if domicilio.estado in ['pendiente', 'preparando', 'listo', 'en_camino'] %}
+<script>
+    setTimeout(function() {
+        location.reload();
+    }, 30000);
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Cocina - Domicilios{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-fire"></i> Cocina - Domicilios
+        </h2>
+        <div>
+            <a href="{{ url_for('cocina') }}" class="btn btn-secondary">
+                <i class="fas fa-utensils"></i> Ver Pedidos de Mesa
+            </a>
+            <span class="badge bg-primary fs-5">{{ domicilios|length }} domicilio(s) activos</span>
+        </div>
+    </div>
+
+    {% if domicilios %}
+    <div class="row">
+        {% for domicilio in domicilios %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card {% if domicilio.esta_retrasado %}border-danger{% endif %}">
+                <div class="card-header" style="background-color: {{ domicilio.color_estado }}; color: white;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-motorcycle"></i> Domicilio #{{ domicilio.id }}
+                        </h5>
+                        <span class="badge bg-light text-dark">
+                            {{ domicilio.tiempo_transcurrido }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Info del cliente -->
+                    <div class="mb-3">
+                        <strong><i class="fas fa-user"></i> {{ domicilio.cliente_nombre }}</strong>
+                        <br>
+                        <small class="text-muted">
+                            <i class="fas fa-map-marker-alt"></i> {{ domicilio.cliente_direccion }}
+                            {% if domicilio.cliente_barrio %}
+                            <br>{{ domicilio.cliente_barrio }}
+                            {% endif %}
+                        </small>
+                    </div>
+
+                    <hr>
+
+                    <!-- Items del pedido -->
+                    <div class="mb-3">
+                        <strong>Productos:</strong>
+                        <ul class="list-unstyled mt-2">
+                            {% for item in domicilio.items %}
+                            <li class="mb-2">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="badge bg-{{ 
+                                            'success' if item.estado_cocina == 'listo'
+                                            else 'warning' if item.estado_cocina == 'preparando'
+                                            else 'secondary'
+                                        }}">
+                                            {{ item.estado_cocina|upper }}
+                                        </span>
+                                        <strong>{{ item.cantidad }}x</strong> {{ item.producto_nombre }}
+                                        {% if item.notas %}
+                                        <br><small class="text-muted">📝 {{ item.notas }}</small>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div>
+                                        {% if item.estado_cocina == 'pendiente' %}
+                                        <form method="POST" action="{{ url_for('actualizar_estado_item_domicilio', item_id=item.id) }}" style="display: inline;">
+                                            <input type="hidden" name="estado" value="preparando">
+                                            <button type="submit" class="btn btn-sm btn-warning" title="Iniciar preparación">
+                                                <i class="fas fa-fire"></i>
+                                            </button>
+                                        </form>
+                                        {% elif item.estado_cocina == 'preparando' %}
+                                        <form method="POST" action="{{ url_for('actualizar_estado_item_domicilio', item_id=item.id) }}" style="display: inline;">
+                                            <input type="hidden" name="estado" value="listo">
+                                            <button type="submit" class="btn btn-sm btn-success" title="Marcar como listo">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </form>
+                                        {% elif item.estado_cocina == 'listo' %}
+                                        <i class="fas fa-check-circle text-success"></i>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <!-- Notas especiales -->
+                    {% if domicilio.notas %}
+                    <div class="alert alert-warning mb-2">
+                        <small><strong>⚠️ Nota:</strong> {{ domicilio.notas }}</small>
+                    </div>
+                    {% endif %}
+
+                    <!-- Estado general -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            Estado: <strong>{{ domicilio.estado|upper }}</strong>
+                        </small>
+                        <a href="{{ url_for('ver_domicilio', domicilio_id=domicilio.id) }}" 
+                           class="btn btn-sm btn-primary">
+                            Ver Detalle <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+
+                {% if domicilio.esta_retrasado %}
+                <div class="card-footer bg-danger text-white">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    <strong>PEDIDO RETRASADO</strong> - Más de 45 minutos
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle"></i> No hay domicilios pendientes en cocina
+    </div>
+    {% endif %}
+</div>
+
+<!-- Sonido de notificación (opcional) -->
+<audio id="notificationSound" preload="auto">
+    <source src="/static/notification.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+let ultimaActualizacion = new Date();
+let domiciliosAnteriores = {{ domicilios|length }};
+
+// Auto-refresh cada 10 segundos
+setInterval(function() {
+    location.reload();
+}, 10000);
+
+// Función para reproducir sonido cuando hay nuevo domicilio
+function verificarNuevosDomicilios() {
+    fetch('/api/domicilios/activos')
+        .then(response => response.json())
+        .then(data => {
+            if (data.length > domiciliosAnteriores) {
+                // Hay un nuevo domicilio
+                document.getElementById('notificationSound').play().catch(e => console.log('No se pudo reproducir el sonido'));
+                domiciliosAnteriores = data.length;
+            }
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+// Verificar cada 5 segundos si hay nuevos domicilios
+setInterval(verificarNuevosDomicilios, 5000);
+</script>
+
+<style>
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.border-danger {
+    border-width: 3px !important;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        border-color: #dc3545;
+    }
+    50% {
+        border-color: #ff0000;
+    }
+}
+</style>
+{% endblock %}

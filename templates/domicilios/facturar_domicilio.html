@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Facturar Domicilio #{{ domicilio.id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4><i class="fas fa-file-invoice-dollar"></i> Generar Factura - Domicilio #{{ domicilio.id }}</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Información del Domicilio -->
+                    <div class="alert alert-info mb-4">
+                        <h5>Información del Pedido</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Cliente:</strong> {{ domicilio.cliente_nombre }}</p>
+                                <p class="mb-1"><strong>Teléfono:</strong> {{ domicilio.cliente_telefono }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Dirección:</strong> {{ domicilio.cliente_direccion }}</p>
+                                <p class="mb-1"><strong>Barrio:</strong> {{ domicilio.cliente_barrio or 'N/A' }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Productos -->
+                    <h5 class="mb-3">Productos</h5>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cant.</th>
+                                    <th>Precio</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in domicilio.items %}
+                                <tr>
+                                    <td>{{ item.producto_nombre }}</td>
+                                    <td>{{ item.cantidad }}</td>
+                                    <td>${{ "{:,.0f}".format(item.precio_unitario) }}</td>
+                                    <td>${{ "{:,.0f}".format(item.subtotal) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Subtotal Productos:</strong></td>
+                                    <td><strong>${{ "{:,.0f}".format(domicilio.subtotal) }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end">Costo Domicilio:</td>
+                                    <td>${{ "{:,.0f}".format(domicilio.costo_domicilio) }}</td>
+                                </tr>
+                                <tr class="table-primary">
+                                    <td colspan="3" class="text-end"><strong>TOTAL:</strong></td>
+                                    <td><strong>${{ "{:,.0f}".format(domicilio.subtotal + domicilio.costo_domicilio) }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Formulario de Facturación -->
+                    <form method="post">
+                        <h5 class="mb-3">Datos de la Factura</h5>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Propina (opcional)</label>
+                                <input type="number" name="propina" class="form-control" 
+                                       value="0" step="500" min="0" id="inputPropina">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Estado de Pago</label>
+                                <select name="estado_pago" id="selectEstadoPago" class="form-select">
+                                    <option value="pagada" selected>Pagada</option>
+                                    <option value="pendiente">Pendiente (Crédito)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Fecha de Vencimiento (solo si es pendiente) -->
+                        <div class="row mb-3" id="divFechaVencimiento" style="display: none;">
+                            <div class="col-md-12">
+                                <label class="form-label">Fecha de Vencimiento</label>
+                                <input type="date" name="fecha_vencimiento" class="form-control"
+                                       min="{{ datetime.now().strftime('%Y-%m-%d') }}"
+                                       value="{{ fecha_vencimiento_default }}">
+                                <small class="text-muted">¿Cuándo debe pagar el cliente?</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Notas de la Factura (opcional)</label>
+                            <textarea name="notas" class="form-control" rows="2"
+                                      placeholder="Notas adicionales para la factura"></textarea>
+                        </div>
+
+                        <!-- Resumen Total -->
+                        <div class="alert alert-success">
+                            <h5 class="mb-2">Total a Facturar</h5>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Subtotal:</span>
+                                <strong id="displaySubtotal">${{ "{:,.0f}".format(domicilio.subtotal + domicilio.costo_domicilio) }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Propina:</span>
+                                <strong id="displayPropina">$0</strong>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between">
+                                <h5>TOTAL:</h5>
+                                <h5 id="displayTotal">${{ "{:,.0f}".format(domicilio.subtotal + domicilio.costo_domicilio) }}</h5>
+                            </div>
+                        </div>
+
+                        <!-- Botones -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('ver_domicilio', domicilio_id=domicilio.id) }}" 
+                               class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check"></i> Generar Factura
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Calcular totales dinámicamente
+const inputPropina = document.getElementById('inputPropina');
+const displayPropina = document.getElementById('displayPropina');
+const displayTotal = document.getElementById('displayTotal');
+const selectEstadoPago = document.getElementById('selectEstadoPago');
+const divFechaVencimiento = document.getElementById('divFechaVencimiento');
+
+const subtotalBase = {{ domicilio.subtotal + domicilio.costo_domicilio }};
+
+function actualizarTotales() {
+    const propina = parseFloat(inputPropina.value) || 0;
+    const total = subtotalBase + propina;
+    
+    displayPropina.textContent = '$' + propina.toLocaleString('es-CO');
+    displayTotal.textContent = '$' + total.toLocaleString('es-CO');
+}
+
+// Mostrar/ocultar fecha de vencimiento según estado
+selectEstadoPago.addEventListener('change', function() {
+    if (this.value === 'pendiente') {
+        divFechaVencimiento.style.display = 'block';
+    } else {
+        divFechaVencimiento.style.display = 'none';
+    }
+});
+
+inputPropina.addEventListener('input', actualizarTotales);
+</script>
+{% endblock %}

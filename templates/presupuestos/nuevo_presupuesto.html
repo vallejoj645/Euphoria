@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuevo Presupuesto - Restaurante</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        .form-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('lista_presupuestos') }}">
+                <i class="bi bi-arrow-left"></i> Volver a Presupuestos
+            </a>
+            <span class="navbar-text text-white">
+                <i class="bi bi-person-circle"></i> {{ current_user.nombre }}
+            </span>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <div class="row">
+            <div class="col-lg-6 mx-auto">
+                <div class="text-center mb-4">
+                    <h2><i class="bi bi-piggy-bank-fill text-primary"></i> Nuevo Presupuesto</h2>
+                    <p class="text-muted">Define un límite de gasto para una categoría</p>
+                </div>
+
+                <!-- Mensajes Flash -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="{{ url_for('nuevo_presupuesto') }}">
+                    <div class="form-section">
+                        <h5 class="mb-4">
+                            <i class="bi bi-info-circle"></i> Información Básica
+                        </h5>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-tag"></i> 
+                                Categoría de Gasto <span class="text-danger">*</span>
+                            </label>
+                            <select name="categoria_id" class="form-select" required>
+                                <option value="">Seleccionar categoría...</option>
+                                {% for cat in categorias %}
+                                <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-cash-stack"></i> 
+                                Monto Límite <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" 
+                                       name="monto_limite" 
+                                       class="form-control" 
+                                       step="1000" 
+                                       min="0"
+                                       placeholder="2000000"
+                                       required>
+                            </div>
+                            <small class="form-text text-muted">
+                                Máximo que puedes gastar en esta categoría
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h5 class="mb-4">
+                            <i class="bi bi-calendar"></i> Período
+                        </h5>
+
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de Período</label>
+                            <select name="periodo" class="form-select">
+                                <option value="mensual" selected>Mensual</option>
+                            </select>
+                            <small class="form-text text-muted">
+                                Por ahora solo períodos mensuales disponibles
+                            </small>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Mes</label>
+                                <select name="mes" class="form-select" required>
+                                    {% for i in range(1, 13) %}
+                                    <option value="{{ i }}" {% if i == mes_actual %}selected{% endif %}>
+                                        {% if i == 1 %}Enero
+                                        {% elif i == 2 %}Febrero
+                                        {% elif i == 3 %}Marzo
+                                        {% elif i == 4 %}Abril
+                                        {% elif i == 5 %}Mayo
+                                        {% elif i == 6 %}Junio
+                                        {% elif i == 7 %}Julio
+                                        {% elif i == 8 %}Agosto
+                                        {% elif i == 9 %}Septiembre
+                                        {% elif i == 10 %}Octubre
+                                        {% elif i == 11 %}Noviembre
+                                        {% else %}Diciembre{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Año</label>
+                                <input type="number" 
+                                       name="anio" 
+                                       class="form-control" 
+                                       value="{{ anio_actual }}"
+                                       min="2024"
+                                       max="2030"
+                                       required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h5 class="mb-4">
+                            <i class="bi bi-bell"></i> Alertas
+                        </h5>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                Porcentaje de Alerta
+                            </label>
+                            <div class="input-group">
+                                <input type="number" 
+                                       name="alerta_porcentaje" 
+                                       class="form-control" 
+                                       value="80"
+                                       min="50"
+                                       max="95"
+                                       step="5"
+                                       required>
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <small class="form-text text-muted">
+                                Te alertaremos cuando llegues a este porcentaje del presupuesto
+                            </small>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Ejemplo:</strong> Si el presupuesto es $2,000,000 y alertas al 80%, 
+                            recibirás una advertencia cuando gastes $1,600,000.
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('lista_presupuestos') }}" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-circle"></i> Crear Presupuesto
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

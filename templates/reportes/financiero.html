@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Financiero - Restaurante</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        .metric-card {
+            border-left: 4px solid;
+            transition: transform 0.2s;
+        }
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        .positive {
+            color: #28a745;
+        }
+        .negative {
+            color: #dc3545;
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 2rem;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark no-print">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('lista_gastos') }}">
+                <i class="bi bi-arrow-left"></i> Volver a Gastos
+            </a>
+            <div>
+                <button onclick="window.print()" class="btn btn-sm btn-outline-light me-2">
+                    <i class="bi bi-printer"></i> Imprimir
+                </button>
+                <span class="navbar-text text-white">
+                    <i class="bi bi-person-circle"></i> {{ current_user.nombre }}
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+        <!-- Encabezado del Reporte -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <h1><i class="bi bi-graph-up-arrow text-success"></i> Reporte Financiero</h1>
+                <p class="text-muted lead">
+                    Del {{ fecha_inicio }} al {{ fecha_fin }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Filtro de Fechas -->
+        <div class="row mb-4 no-print">
+            <div class="col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="GET" action="{{ url_for('reporte_financiero') }}" class="row g-3">
+                            <div class="col-md-5">
+                                <label class="form-label">
+                                    <i class="bi bi-calendar"></i> Fecha Inicio
+                                </label>
+                                <input type="date" 
+                                       name="fecha_inicio" 
+                                       class="form-control" 
+                                       value="{{ fecha_inicio }}"
+                                       required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">
+                                    <i class="bi bi-calendar-check"></i> Fecha Fin
+                                </label>
+                                <input type="date" 
+                                       name="fecha_fin" 
+                                       class="form-control" 
+                                       value="{{ fecha_fin }}"
+                                       required>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-search"></i> Filtrar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Métricas Principales -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card metric-card" style="border-left-color: #28a745;">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-2">
+                            <i class="bi bi-arrow-up-circle"></i> INGRESOS
+                        </h6>
+                        <div class="metric-value positive">
+                            ${{ "{:,.2f}".format(ingresos) }}
+                        </div>
+                        <small class="text-muted">Total facturado</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card" style="border-left-color: #dc3545;">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-2">
+                            <i class="bi bi-arrow-down-circle"></i> GASTOS
+                        </h6>
+                        <div class="metric-value negative">
+                            ${{ "{:,.2f}".format(gastos_total) }}
+                        </div>
+                        <small class="text-muted">Total egresos</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card" style="border-left-color: {% if utilidad >= 0 %}#0d6efd{% else %}#ffc107{% endif %};">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-2">
+                            <i class="bi bi-graph-up"></i> UTILIDAD
+                        </h6>
+                        <div class="metric-value {% if utilidad >= 0 %}positive{% else %}negative{% endif %}">
+                            ${{ "{:,.2f}".format(utilidad) }}
+                        </div>
+                        <small class="text-muted">Ingresos - Gastos</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card" style="border-left-color: #6c757d;">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-2">
+                            <i class="bi bi-percent"></i> MARGEN
+                        </h6>
+                        <div class="metric-value {% if margen >= 0 %}positive{% else %}negative{% endif %}">
+                            {{ "{:.1f}".format(margen) }}%
+                        </div>
+                        <small class="text-muted">Rentabilidad</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interpretación del Margen -->
+        <div class="row mb-4">
+            <div class="col-12">
+                {% if margen >= 20 %}
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i> 
+                    <strong>Excelente rentabilidad:</strong> El negocio está generando muy buenas ganancias.
+                </div>
+                {% elif margen >= 10 %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> 
+                    <strong>Rentabilidad saludable:</strong> El negocio está en buen camino.
+                </div>
+                {% elif margen >= 0 %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    <strong>Rentabilidad baja:</strong> Considere optimizar gastos o aumentar precios.
+                </div>
+                {% else %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-x-circle"></i> 
+                    <strong>Pérdidas:</strong> Los gastos superan los ingresos. Revise urgentemente.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="row mb-4">
+            <!-- Gráfico de Barras: Ingresos vs Gastos -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-bar-chart"></i> Comparación Ingresos vs Gastos
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chartComparacion"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico de Torta: Gastos por Categoría -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-pie-chart"></i> Distribución de Gastos
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chartGastos"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Línea: Evolución Diaria -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-graph-up"></i> Evolución Diaria
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chartEvolucion"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla Detallada de Gastos por Categoría -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-table"></i> Detalle de Gastos por Categoría
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Categoría</th>
+                                        <th class="text-center">Cantidad de Gastos</th>
+                                        <th class="text-end">Total</th>
+                                        <th class="text-end">% del Total</th>
+                                        <th style="width: 200px;">Porcentaje</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for cat in gastos_por_categoria_tabla %}
+                                    {% set porcentaje = (cat.total / gastos_total * 100) if gastos_total > 0 else 0 %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge" style="background-color: {{ cat.color }};">
+                                                {{ cat.nombre }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">{{ cat.cantidad }}</td>
+                                        <td class="text-end">
+                                            <strong>${{ "{:,.2f}".format(cat.total) }}</strong>
+                                        </td>
+                                        <td class="text-end">{{ "{:.1f}".format(porcentaje) }}%</td>
+                                        <td>
+                                            <div class="progress">
+                                                <div class="progress-bar" 
+                                                    style="width: {{ porcentaje }}%; background-color: {{ cat.color }};"
+                                                    role="progressbar">
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <th>TOTAL</th>
+                                        <th class="text-center">
+                                            {{ gastos_por_categoria_tabla|sum(attribute='cantidad') }}
+                                        </th>
+                                        <th class="text-end">
+                                            <h5 class="mb-0">${{ "{:,.2f}".format(gastos_total) }}</h5>
+                                        </th>
+                                        <th class="text-end">100%</th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer del Reporte -->
+        <div class="row">
+            <div class="col-12 text-center text-muted">
+                <hr>
+                <small>
+                    Reporte generado el {{ now.strftime('%d/%m/%Y %H:%M') }} por {{ current_user.nombre }}
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Datos del servidor
+        const evolucionDiaria = {{ evolucion_diaria|tojson }};
+        const gastosPorCategoria = {{ gastos_por_categoria|tojson }};
+        const ingresos = {{ ingresos }};
+        const gastos = {{ gastos_total }};
+        const utilidad = {{ utilidad }};
+
+        // Gráfico 1: Comparación Ingresos vs Gastos
+        const ctxComparacion = document.getElementById('chartComparacion').getContext('2d');
+        new Chart(ctxComparacion, {
+            type: 'bar',
+            data: {
+                labels: ['Ingresos', 'Gastos', 'Utilidad'],
+                datasets: [{
+                    label: 'Monto ($)',
+                    data: [ingresos, gastos, utilidad],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.7)',
+                        'rgba(220, 53, 69, 0.7)',
+                        utilidad >= 0 ? 'rgba(13, 110, 253, 0.7)' : 'rgba(255, 193, 7, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(220, 53, 69, 1)',
+                        utilidad >= 0 ? 'rgba(13, 110, 253, 1)' : 'rgba(255, 193, 7, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return '$' + context.parsed.y.toLocaleString('es-CO', {
+                                    minimumFractionDigits: 2
+                                });
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString('es-CO');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Gráfico 2: Gastos por Categoría (Torta)
+        const ctxGastos = document.getElementById('chartGastos').getContext('2d');
+        new Chart(ctxGastos, {
+            type: 'doughnut',
+            data: {
+                labels: gastosPorCategoria.map(c => c[0]),
+                datasets: [{
+                    data: gastosPorCategoria.map(c => c[2]),
+                    backgroundColor: gastosPorCategoria.map(c => c[1]),
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return label + ': $' + value.toLocaleString('es-CO', {
+                                    minimumFractionDigits: 2
+                                }) + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Gráfico 3: Evolución Diaria (Línea)
+        const ctxEvolucion = document.getElementById('chartEvolucion').getContext('2d');
+        new Chart(ctxEvolucion, {
+            type: 'line',
+            data: {
+                labels: evolucionDiaria.map(d => d.fecha),
+                datasets: [
+                    {
+                        label: 'Ingresos',
+                        data: evolucionDiaria.map(d => d.ingresos),
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Gastos',
+                        data: evolucionDiaria.map(d => d.gastos),
+                        borderColor: 'rgba(220, 53, 69, 1)',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Utilidad',
+                        data: evolucionDiaria.map(d => d.utilidad),
+                        borderColor: 'rgba(13, 110, 253, 1)',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': $' + 
+                                       context.parsed.y.toLocaleString('es-CO', {
+                                           minimumFractionDigits: 2
+                                       });
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString('es-CO');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Facturas{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-file-invoice-dollar"></i> Historial de Facturas</h2>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Fecha</label>
+                    <input type="date" name="fecha" class="form-control" 
+                           value="{{ request.args.get('fecha', '') }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Estado de Pago</label>
+                    <select name="estado_pago" class="form-select">
+                        <option value="">Todas</option>
+                        <option value="pagada" {% if request.args.get('estado_pago') == 'pagada' %}selected{% endif %}>
+                            Pagadas
+                        </option>
+                        <option value="pendiente" {% if request.args.get('estado_pago') == 'pendiente' %}selected{% endif %}>
+                            Pendientes
+                        </option>
+                        <option value="vencida" {% if request.args.get('estado_pago') == 'vencida' %}selected{% endif %}>
+                            Vencidas
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                    <a href="{{ url_for('lista_facturas') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de Facturas -->
+    {% if facturas %}
+    <div class="row">
+        {% for factura in facturas %}
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="mb-1">{{ factura.numero_consecutivo }}</h5>
+                            <small class="text-muted">
+                                {{ factura.fecha_emision.strftime('%d/%m/%Y %I:%M %p') }}
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            {% if factura.estado_pago == 'pagada' %}
+                            <span class="badge bg-success">PAGADA</span>
+                            {% elif factura.estado_pago == 'pendiente' %}
+                            <span class="badge bg-warning">PENDIENTE</span>
+                            {% elif factura.estado_pago == 'vencida' %}
+                            <span class="badge bg-danger">VENCIDA</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <!-- Tipo: Mesa o Domicilio -->
+                            {% if factura.sesion %}
+                                <p class="mb-1">
+                                    <i class="fas fa-table"></i> 
+                                    <strong>Mesa {{ factura.sesion.mesa.numero }}</strong>
+                                </p>
+                            {% else %}
+                                <p class="mb-1">
+                                    <i class="fas fa-motorcycle"></i> 
+                                    <strong>Domicilio</strong>
+                                    {% set domicilio = factura.domicilios[0] if factura.domicilios else None %}
+                                    {% if domicilio %}
+                                        #{{ domicilio.id }}
+                                    {% endif %}
+                                </p>
+                            {% endif %}
+                        </div>
+                        <div class="col-6 text-end">
+                            <p class="mb-1">
+                                <strong>{{ factura.metodo_pago|upper }}</strong>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Cliente -->
+                    {% if factura.cliente_nombre %}
+                    <p class="mb-2">
+                        <i class="fas fa-user"></i> {{ factura.cliente_nombre }}
+                    </p>
+                    {% endif %}
+
+                    <!-- Total -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Total:</span>
+                        <h4 class="mb-0 text-success">${{ "{:,.0f}".format(factura.total) }}</h4>
+                    </div>
+
+                    <!-- Información de Crédito -->
+                    {% if factura.estado_pago in ['pendiente', 'vencida'] %}
+                    <div class="alert alert-{{ 'danger' if factura.estado_pago == 'vencida' else 'warning' }} mb-3 py-2">
+                        <small>
+                            <strong>Saldo:</strong> ${{ "{:,.0f}".format(factura.saldo_pendiente or factura.total) }}
+                            {% if factura.fecha_vencimiento %}
+                            <br><strong>Vence:</strong> {{ factura.fecha_vencimiento.strftime('%d/%m/%Y') }}
+                            {% endif %}
+                        </small>
+                    </div>
+                    {% endif %}
+
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('ver_factura', factura_id=factura.id) }}" 
+                           class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i> Ver
+                        </a>
+                        <div>
+                            {% if current_user.rol == 'admin' %}
+                            <a href="{{ url_for('editar_factura', factura_id=factura.id) }}" 
+                               class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% endif %}
+                            {% if factura.estado_pago in ['pendiente', 'vencida'] %}
+                            <form method="POST" 
+                                  action="{{ url_for('marcar_factura_pagada', factura_id=factura.id) }}" 
+                                  style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-success"
+                                        onclick="return confirm('¿Marcar como pagada?')">
+                                    <i class="fas fa-check"></i> Pagar
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Resumen -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5>Resumen</h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <p class="mb-1"><strong>Total Facturas:</strong></p>
+                    <h4>{{ facturas|length }}</h4>
+                </div>
+                <div class="col-md-3">
+                    <p class="mb-1"><strong>Total Facturado:</strong></p>
+                    <h4>${{ "{:,.0f}".format(facturas|sum(attribute='total')) }}</h4>
+                </div>
+                <div class="col-md-3">
+                    <p class="mb-1"><strong>Pagadas:</strong></p>
+                    <h4 class="text-success">
+                        {{ facturas|selectattr('estado_pago', 'equalto', 'pagada')|list|length }}
+                    </h4>
+                </div>
+                <div class="col-md-3">
+                    <p class="mb-1"><strong>Pendientes/Vencidas:</strong></p>
+                    <h4 class="text-warning">
+                        {{ facturas|rejectattr('estado_pago', 'equalto', 'pagada')|list|length }}
+                    </h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> No hay facturas registradas.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

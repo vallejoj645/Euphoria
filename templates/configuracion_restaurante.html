@@ -1,0 +1,139 @@
+<!-- templates/configuracion_restaurante.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración del Restaurante</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; margin-bottom: 30px; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group.full { grid-column: 1 / -1; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #34495e; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 2px solid #ecf0f1; border-radius: 5px; font-size: 14px; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #3498db; outline: none; }
+        .form-group small { display: block; margin-top: 5px; color: #7f8c8d; font-size: 12px; }
+        
+        .btn { padding: 12px 30px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; text-decoration: none; display: inline-block; margin-right: 10px; transition: all 0.3s; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-success:hover { background: #229954; }
+        .btn-secondary { background: #95a5a6; color: white; }
+        .btn-secondary:hover { background: #7f8c8d; }
+        
+        .preview { background: #ecf0f1; padding: 20px; border-radius: 8px; margin-top: 30px; }
+        .preview h3 { margin-bottom: 15px; color: #34495e; }
+        .preview-factura { background: white; padding: 20px; border-radius: 5px; font-family: 'Courier New', monospace; font-size: 12px; max-width: 400px; margin: 0 auto; }
+        .preview-factura .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+        
+        .actions { margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚙️ Configuración del Restaurante</h1>
+        
+        <form method="POST">
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Nombre del Restaurante *</label>
+                    <input type="text" name="nombre" value="{{ config.nombre }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>NIT *</label>
+                    <input type="text" name="nit" value="{{ config.nit }}" required>
+                    <small>Formato: 900.000.000-0</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Teléfono *</label>
+                    <input type="text" name="telefono" value="{{ config.telefono }}" required>
+                </div>
+                
+                <div class="form-group full">
+                    <label>Dirección *</label>
+                    <input type="text" name="direccion" value="{{ config.direccion }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Ciudad *</label>
+                    <input type="text" name="ciudad" value="{{ config.ciudad }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" value="{{ config.email or '' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label>Régimen Tributario *</label>
+                    <select name="regimen" required>
+                        <option value="Régimen Simplificado" {% if config.regimen == 'Régimen Simplificado' %}selected{% endif %}>Régimen Simplificado</option>
+                        <option value="Régimen Común" {% if config.regimen == 'Régimen Común' %}selected{% endif %}>Régimen Común</option>
+                        <option value="Gran Contribuyente" {% if config.regimen == 'Gran Contribuyente' %}selected{% endif %}>Gran Contribuyente</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>IVA (%) *</label>
+                    <input type="number" name="iva_porcentaje" value="{{ config.iva_porcentaje }}" step="0.01" min="0" max="100" required>
+                    <small>Porcentaje de IVA a aplicar</small>
+                </div>
+                
+                <div class="form-group full">
+                    <label>Resolución DIAN</label>
+                    <input type="text" name="resolucion_dian" value="{{ config.resolucion_dian or '' }}" placeholder="Resolución DIAN No. 123456 del 01/01/2024">
+                    <small>Ejemplo: Resolución DIAN No. 123456 del 01/01/2024</small>
+                </div>
+                
+                <div class="form-group full">
+                    <label>Rango de Facturación</label>
+                    <input type="text" name="rango_facturacion" value="{{ config.rango_facturacion or '' }}" placeholder="Del FACT-000001 al FACT-100000">
+                    <small>Rango autorizado por la DIAN</small>
+                </div>
+                
+                <div class="form-group full">
+                    <label>URL del Logo</label>
+                    <input type="url" name="logo_url" value="{{ config.logo_url or '' }}" placeholder="https://ejemplo.com/logo.png">
+                    <small>URL de la imagen del logo (opcional)</small>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <button type="submit" class="btn btn-success">💾 Guardar Configuración</button>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">❌ Cancelar</a>
+            </div>
+        </form>
+        
+        <div class="preview">
+            <h3>Vista Previa de Factura</h3>
+            <div class="preview-factura">
+                <div class="header">
+                    <strong>{{ config.nombre }}</strong><br>
+                    NIT: {{ config.nit }}<br>
+                    {{ config.direccion }}<br>
+                    {{ config.ciudad }}<br>
+                    Tel: {{ config.telefono }}<br>
+                    <small>{{ config.regimen }}</small>
+                </div>
+                <div style="margin: 10px 0;">
+                    FACTURA: FACT-000001<br>
+                    FECHA: {{ now.strftime('%d/%m/%Y') }}<br>
+                    HORA: {{ now.strftime('%H:%M') }}<br>
+                    MESA: 1
+                </div>
+                <div style="border-top: 1px dashed #000; padding-top: 5px;">
+                    <small>Producto ejemplo x 2</small><br>
+                    <small>IVA: {{ config.iva_porcentaje }}%</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

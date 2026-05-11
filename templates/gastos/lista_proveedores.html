@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proveedores - Restaurante</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        .proveedor-card {
+            transition: all 0.3s;
+            border-left: 4px solid #0d6efd;
+        }
+        .proveedor-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .proveedor-card.inactivo {
+            border-left-color: #6c757d;
+            opacity: 0.7;
+        }
+        .stat-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('lista_gastos') }}">
+                <i class="bi bi-arrow-left"></i> Volver a Gastos
+            </a>
+            <span class="navbar-text text-white">
+                <i class="bi bi-person-circle"></i> {{ current_user.nombre }}
+            </span>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <!-- Encabezado -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h2><i class="bi bi-building"></i> Gestión de Proveedores</h2>
+                <p class="text-muted">Directorio de proveedores del restaurante</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <a href="{{ url_for('nuevo_proveedor') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Nuevo Proveedor
+                </a>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card border-primary">
+                    <div class="card-body text-center">
+                        <h3 class="text-primary">{{ proveedores|selectattr('activo')|list|length }}</h3>
+                        <p class="mb-0 text-muted">Proveedores Activos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-secondary">
+                    <div class="card-body text-center">
+                        <h3 class="text-secondary">{{ proveedores|rejectattr('activo')|list|length }}</h3>
+                        <p class="mb-0 text-muted">Proveedores Inactivos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-success">
+                    <div class="card-body text-center">
+                        <h3 class="text-success">{{ proveedores|length }}</h3>
+                        <p class="mb-0 text-muted">Total Proveedores</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mensajes Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Listado de Proveedores -->
+        {% if proveedores %}
+        <div class="row">
+            {% for proveedor in proveedores %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card proveedor-card h-100 {% if not proveedor.activo %}inactivo{% endif %}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-building"></i>
+                                {{ proveedor.nombre }}
+                            </h5>
+                            {% if proveedor.activo %}
+                            <span class="badge bg-success stat-badge">Activo</span>
+                            {% else %}
+                            <span class="badge bg-secondary stat-badge">Inactivo</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {% if proveedor.nit %}
+                            <p class="mb-1">
+                                <small class="text-muted">
+                                    <i class="bi bi-file-text"></i> NIT:
+                                </small>
+                                <small>{{ proveedor.nit }}</small>
+                            </p>
+                            {% endif %}
+
+                            {% if proveedor.telefono %}
+                            <p class="mb-1">
+                                <small class="text-muted">
+                                    <i class="bi bi-telephone"></i> Teléfono:
+                                </small>
+                                <small>
+                                    <a href="tel:{{ proveedor.telefono }}">{{ proveedor.telefono }}</a>
+                                </small>
+                            </p>
+                            {% endif %}
+
+                            {% if proveedor.email %}
+                            <p class="mb-1">
+                                <small class="text-muted">
+                                    <i class="bi bi-envelope"></i> Email:
+                                </small>
+                                <small>
+                                    <a href="mailto:{{ proveedor.email }}">{{ proveedor.email }}</a>
+                                </small>
+                            </p>
+                            {% endif %}
+
+                            {% if proveedor.direccion %}
+                            <p class="mb-1">
+                                <small class="text-muted">
+                                    <i class="bi bi-geo-alt"></i> Dirección:
+                                </small>
+                                <small>{{ proveedor.direccion }}</small>
+                            </p>
+                            {% endif %}
+                        </div>
+
+                        {% if proveedor.notas %}
+                        <div class="alert alert-info py-2 mb-3">
+                            <small><i class="bi bi-info-circle"></i> {{ proveedor.notas }}</small>
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar"></i> 
+                                Registrado: {{ proveedor.fecha_registro.strftime('%d/%m/%Y') }}
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            {% set gastos_count = proveedor.gastos|length %}
+                            {% if gastos_count > 0 %}
+                            {% set total_gastado = proveedor.gastos|sum(attribute='monto') %}
+                            <div class="d-flex justify-content-between">
+                                <span class="badge bg-primary">
+                                    {{ gastos_count }} compra(s)
+                                </span>
+                                <span class="badge bg-danger">
+                                    ${{ "{:,.2f}".format(total_gastado) }}
+                                </span>
+                            </div>
+                            {% else %}
+                            <span class="badge bg-secondary">Sin compras registradas</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <div class="btn-group">
+                                <a href="{{ url_for('editar_proveedor', proveedor_id=proveedor.id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                                {% if current_user.rol == 'admin' %}
+                                <a href="{{ url_for('toggle_proveedor', proveedor_id=proveedor.id) }}" 
+                                   class="btn btn-sm btn-outline-{% if proveedor.activo %}warning{% else %}success{% endif %}"
+                                   onclick="return confirm('¿Cambiar estado del proveedor?')">
+                                    <i class="bi bi-toggle-{% if proveedor.activo %}off{% else %}on{% endif %}"></i>
+                                    {% if proveedor.activo %}Desactivar{% else %}Activar{% endif %}
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-building" style="font-size: 4rem; color: #ccc;"></i>
+            <h4 class="text-muted mt-3">No hay proveedores registrados</h4>
+            <p class="text-muted">Agrega tu primer proveedor para facilitar el registro de gastos</p>
+            <a href="{{ url_for('nuevo_proveedor') }}" class="btn btn-primary btn-lg">
+                <i class="bi bi-plus-circle"></i> Agregar Primer Proveedor
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo Domicilio{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-motorcycle"></i> Nuevo Domicilio</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="formDomicilio">
+                        <!-- Datos del Cliente -->
+                        <h5 class="mb-3">Información del Cliente</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nombre *</label>
+                                <input type="text" name="cliente_nombre" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Teléfono *</label>
+                                <input type="tel" name="cliente_telefono" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Dirección *</label>
+                            <input type="text" name="cliente_direccion" class="form-control" required>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Barrio</label>
+                                <select name="cliente_barrio" id="selectBarrio" class="form-select">
+                                    <option value="">Seleccionar barrio...</option>
+                                    {% for zona in zonas %}
+                                    <optgroup label="{{ zona.nombre }} - ${{ "{:,.0f}".format(zona.costo_envio) }}">
+                                        {% for barrio in zona.lista_barrios %}
+                                        <option value="{{ barrio }}" data-costo="{{ zona.costo_envio }}">
+                                            {{ barrio }}
+                                        </option>
+                                        {% endfor %}
+                                    </optgroup>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Costo Domicilio</label>
+                                <input type="number" name="costo_domicilio" id="costoDomicilio" 
+                                       class="form-control" value="3000" step="500" min="0">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Referencias</label>
+                            <textarea name="cliente_referencias" class="form-control" rows="2" 
+                                      placeholder="Ej: Casa azul, portón negro, frente al parque"></textarea>
+                        </div>
+
+                        <hr>
+
+                        <!-- Productos -->
+                        <h5 class="mb-3">Productos</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Seleccionar Producto</label>
+                                <select id="selectProducto" class="form-select">
+                                    <option value="">Seleccionar...</option>
+                                    {% for item in items_menu %}
+                                    <option value="{{ item.id }}" 
+                                            data-nombre="{{ item.nombre }}" 
+                                            data-precio="{{ item.precio }}">
+                                        {{ item.nombre }} - ${{ "{:,.0f}".format(item.precio) }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Cantidad</label>
+                                <input type="number" id="cantidadProducto" class="form-control" 
+                                       value="1" min="1">
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="button" onclick="agregarProducto()" class="btn btn-primary w-100">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Lista de productos agregados -->
+                        <div id="listaProductos" class="mb-3">
+                            <!-- Se llena dinámicamente con JavaScript -->
+                        </div>
+
+                        <hr>
+
+                        <!-- Método de Pago -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Método de Pago</label>
+                                <select name="metodo_pago" class="form-select">
+                                    <option value="efectivo">Efectivo</option>
+                                    <option value="tarjeta">Tarjeta</option>
+                                    <option value="transferencia">Transferencia</option>
+                                    <option value="datafono">Datáfono</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Notas del Pedido</label>
+                                <input type="text" name="notas" class="form-control" 
+                                       placeholder="Ej: Sin cebolla, extra picante">
+                            </div>
+                        </div>
+
+                        <!-- Campo oculto para enviar los productos en JSON -->
+                        <input type="hidden" name="items_json" id="itemsJson">
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('lista_domicilios') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check"></i> Crear Domicilio
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen del Pedido -->
+        <div class="col-md-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header bg-primary text-white">
+                    <h5>Resumen del Pedido</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <strong id="subtotalDisplay">$0</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Domicilio:</span>
+                        <strong id="domicilioDisplay">$3,000</strong>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <h5>Total:</h5>
+                        <h5 id="totalDisplay">$3,000</h5>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3" id="itemsCount">
+                        0 productos agregados
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let productosAgregados = [];
+
+// Auto-calcular costo de domicilio al seleccionar barrio
+document.getElementById('selectBarrio').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    const costo = option.dataset.costo;
+    if (costo) {
+        document.getElementById('costoDomicilio').value = costo;
+        actualizarResumen();
+    }
+});
+
+// Actualizar resumen cuando cambia el costo de domicilio
+document.getElementById('costoDomicilio').addEventListener('input', actualizarResumen);
+
+function agregarProducto() {
+    const select = document.getElementById('selectProducto');
+    const cantidad = parseInt(document.getElementById('cantidadProducto').value);
+    
+    if (!select.value || cantidad <= 0) {
+        alert('Selecciona un producto y cantidad válida');
+        return;
+    }
+    
+    const option = select.options[select.selectedIndex];
+    const producto = {
+        item_id: parseInt(select.value),
+        nombre: option.dataset.nombre,
+        precio: parseFloat(option.dataset.precio),
+        cantidad: cantidad
+    };
+    
+    // Verificar si ya existe el producto
+    const existe = productosAgregados.findIndex(p => p.item_id === producto.item_id);
+    if (existe !== -1) {
+        productosAgregados[existe].cantidad += cantidad;
+    } else {
+        productosAgregados.push(producto);
+    }
+    
+    // Reset selects
+    select.value = '';
+    document.getElementById('cantidadProducto').value = 1;
+    
+    actualizarListaProductos();
+    actualizarResumen();
+}
+
+function eliminarProducto(index) {
+    productosAgregados.splice(index, 1);
+    actualizarListaProductos();
+    actualizarResumen();
+}
+
+function actualizarListaProductos() {
+    const lista = document.getElementById('listaProductos');
+    
+    if (productosAgregados.length === 0) {
+        lista.innerHTML = '<div class="alert alert-warning">No hay productos agregados</div>';
+        return;
+    }
+    
+    let html = '<div class="table-responsive"><table class="table table-sm">';
+    html += '<thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead><tbody>';
+    
+    productosAgregados.forEach((p, index) => {
+        const subtotal = p.cantidad * p.precio;
+        html += `
+            <tr>
+                <td>${p.nombre}</td>
+                <td>${p.cantidad}</td>
+                <td>$${p.precio.toLocaleString()}</td>
+                <td><strong>$${subtotal.toLocaleString()}</strong></td>
+                <td>
+                    <button type="button" onclick="eliminarProducto(${index})" 
+                            class="btn btn-sm btn-danger">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    lista.innerHTML = html;
+}
+
+function actualizarResumen() {
+    const subtotal = productosAgregados.reduce((sum, p) => sum + (p.cantidad * p.precio), 0);
+    const costoDomicilio = parseFloat(document.getElementById('costoDomicilio').value) || 0;
+    const total = subtotal + costoDomicilio;
+    
+    document.getElementById('subtotalDisplay').textContent = `$${subtotal.toLocaleString()}`;
+    document.getElementById('domicilioDisplay').textContent = `$${costoDomicilio.toLocaleString()}`;
+    document.getElementById('totalDisplay').textContent = `$${total.toLocaleString()}`;
+    document.getElementById('itemsCount').textContent = `${productosAgregados.length} producto(s) agregados`;
+}
+
+// Al enviar el formulario, incluir los productos en JSON
+document.getElementById('formDomicilio').addEventListener('submit', function(e) {
+    if (productosAgregados.length === 0) {
+        e.preventDefault();
+        alert('Debes agregar al menos un producto');
+        return;
+    }
+    
+    document.getElementById('itemsJson').value = JSON.stringify(productosAgregados);
+});
+</script>
+{% endblock %}
+```

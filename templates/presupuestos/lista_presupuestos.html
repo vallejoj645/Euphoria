@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presupuestos - Restaurante</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        .presupuesto-card {
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+            transition: transform 0.2s;
+            border-left: 6px solid;
+        }
+        .presupuesto-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+        .estado-normal {
+            border-left-color: #28a745;
+        }
+        .estado-alerta {
+            border-left-color: #ffc107;
+            background-color: #fffbf0;
+        }
+        .estado-excedido {
+            border-left-color: #dc3545;
+            background-color: #fff5f5;
+        }
+        .progress-custom {
+            height: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .stat-card {
+            border-left: 4px solid;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('lista_gastos') }}">
+                <i class="bi bi-arrow-left"></i> Volver a Gastos
+            </a>
+            <span class="navbar-text text-white">
+                <i class="bi bi-person-circle"></i> {{ current_user.nombre }}
+            </span>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <!-- Encabezado -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h2><i class="bi bi-piggy-bank text-primary"></i> Presupuestos</h2>
+                <p class="text-muted">
+                    Período: {{ mes_actual }}/{{ anio_actual }}
+                </p>
+            </div>
+            <div class="col-md-6 text-end">
+                <a href="{{ url_for('nuevo_presupuesto') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Nuevo Presupuesto
+                </a>
+                <form method="POST" 
+                      action="{{ url_for('copiar_presupuestos_mes_siguiente') }}" 
+                      style="display: inline;">
+                    <button type="submit" 
+                            class="btn btn-outline-secondary"
+                            onclick="return confirm('¿Copiar todos los presupuestos al mes siguiente?')">
+                        <i class="bi bi-files"></i> Copiar al Siguiente Mes
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tarjetas de Resumen -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card" style="border-left-color: #0d6efd;">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Total Presupuestado</h6>
+                        <h3 class="mb-0 text-primary">${{ "{:,.2f}".format(total_presupuestado) }}</h3>
+                        <small class="text-muted">Límite mensual</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card" style="border-left-color: #dc3545;">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Total Gastado</h6>
+                        <h3 class="mb-0 text-danger">${{ "{:,.2f}".format(total_gastado) }}</h3>
+                        <small class="text-muted">Gasto acumulado</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card" style="border-left-color: #28a745;">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Disponible</h6>
+                        <h3 class="mb-0 {% if total_disponible >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            ${{ "{:,.2f}".format(total_disponible) }}
+                        </h3>
+                        <small class="text-muted">Saldo restante</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card" style="border-left-color: #ffc107;">
+                    <div class="card-body">
+                        <h6 class="text-muted mb-2">Alertas</h6>
+                        <h3 class="mb-0 text-warning">{{ alertas }}</h3>
+                        <small class="text-muted">
+                            {% if excedidos > 0 %}
+                            {{ excedidos }} excedido(s)
+                            {% else %}
+                            Categorías en alerta
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertas Globales -->
+        {% if excedidos > 0 %}
+        <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <strong>¡Atención!</strong> Tienes {{ excedidos }} categoría(s) que han excedido su presupuesto.
+        </div>
+        {% elif alertas > 0 %}
+        <div class="alert alert-warning" role="alert">
+            <i class="bi bi-exclamation-circle"></i>
+            <strong>Advertencia:</strong> Tienes {{ alertas }} categoría(s) cerca del límite de presupuesto.
+        </div>
+        {% endif %}
+
+        <!-- Mensajes Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Tarjetas de Presupuestos -->
+        {% if presupuestos %}
+        <div class="row">
+            {% for presupuesto in presupuestos %}
+            <div class="col-md-6">
+                <div class="card presupuesto-card estado-{{ presupuesto.estado }}">
+                    <div class="card-body">
+                        <!-- Encabezado -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="card-title mb-1">
+                                    <span class="badge" style="background-color: {{ presupuesto.categoria.color }};">
+                                        {{ presupuesto.categoria.nombre }}
+                                    </span>
+                                </h5>
+                                <small class="text-muted">
+                                    Período: {{ presupuesto.periodo|title }} - 
+                                    {{ presupuesto.mes }}/{{ presupuesto.anio }}
+                                </small>
+                            </div>
+                            <div>
+                                {% if presupuesto.estado == 'excedido' %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-exclamation-triangle"></i> Excedido
+                                </span>
+                                {% elif presupuesto.estado == 'alerta' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-exclamation-circle"></i> Alerta
+                                </span>
+                                {% else %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Normal
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Montos -->
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <small class="text-muted d-block">Límite</small>
+                                <strong class="text-primary">
+                                    ${{ "{:,.0f}".format(presupuesto.monto_limite) }}
+                                </strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">Gastado</small>
+                                <strong class="text-danger">
+                                    ${{ "{:,.0f}".format(presupuesto.gasto_actual) }}
+                                </strong>
+                            </div>
+                        </div>
+
+                        <!-- Barra de Progreso -->
+                        <div class="mb-3">
+                            {% set porcentaje = presupuesto.porcentaje_usado %}
+                            <div class="progress progress-custom">
+                                <div class="progress-bar 
+                                    {% if porcentaje >= 100 %}bg-danger
+                                    {% elif porcentaje >= presupuesto.alerta_porcentaje %}bg-warning
+                                    {% else %}bg-success{% endif %}"
+                                     role="progressbar" 
+                                     style="width: {{ [porcentaje, 100]|min }}%"
+                                     aria-valuenow="{{ porcentaje }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    {{ "{:.1f}".format(porcentaje) }}%
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                Alerta configurada al {{ presupuesto.alerta_porcentaje }}%
+                            </small>
+                        </div>
+
+                        <!-- Disponible -->
+                        <div class="alert 
+                            {% if presupuesto.disponible < 0 %}alert-danger
+                            {% elif porcentaje >= presupuesto.alerta_porcentaje %}alert-warning
+                            {% else %}alert-success{% endif %} 
+                            mb-3 py-2">
+                            <strong>Disponible:</strong>
+                            {% if presupuesto.disponible >= 0 %}
+                            ${{ "{:,.0f}".format(presupuesto.disponible) }}
+                            {% else %}
+                            <span class="text-danger">
+                                Excedido por ${{ "{:,.0f}".format(abs(presupuesto.disponible)) }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Acciones -->
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('editar_presupuesto', presupuesto_id=presupuesto.id) }}" 
+                               class="btn btn-sm btn-outline-primary flex-fill">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                            <a href="{{ url_for('lista_gastos') }}?categoria_id={{ presupuesto.categoria_id }}&fecha_inicio={{ anio_actual }}-{{ '%02d'|format(mes_actual) }}-01" 
+                               class="btn btn-sm btn-outline-secondary flex-fill">
+                                <i class="bi bi-list"></i> Ver Gastos
+                            </a>
+                            <a href="{{ url_for('desactivar_presupuesto', presupuesto_id=presupuesto.id) }}" 
+                               class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('¿Desactivar este presupuesto?')">
+                                <i class="bi bi-x-circle"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-piggy-bank" style="font-size: 4rem; color: #ccc;"></i>
+            <h4 class="text-muted mt-3">No hay presupuestos configurados</h4>
+            <p class="text-muted">Crea tu primer presupuesto para controlar tus gastos</p>
+            <a href="{{ url_for('nuevo_presupuesto') }}" class="btn btn-primary btn-lg mt-3">
+                <i class="bi bi-plus-circle"></i> Crear Primer Presupuesto
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Información Adicional -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6><i class="bi bi-info-circle"></i> ¿Cómo funcionan los presupuestos?</h6>
+                <ul class="mb-0">
+                    <li><strong>Normal:</strong> Estás dentro del límite de gasto</li>
+                    <li><strong>Alerta:</strong> Te acercas al límite (según % configurado)</li>
+                    <li><strong>Excedido:</strong> Has superado el límite de presupuesto</li>
+                </ul>
+                <hr>
+                <p class="mb-0">
+                    <i class="bi bi-lightbulb"></i> 
+                    <strong>Consejo:</strong> Usa "Copiar al Siguiente Mes" para no tener que recrear 
+                    los presupuestos cada mes.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
