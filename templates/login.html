@@ -3,26 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión - Punto-Saludable</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <title>Iniciar Sesión - Euphoria</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Bebas+Neue&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --yellow: #FFD501;
-            --yellow-light: #FFF3A0;
-            --green: #3EC45A;
-            --green-dark: #1A7A30;
-            --black: #0D0D0D;
-            --white: #FAFFF5;
-            --card-bg: rgba(255,255,255,0.96);
-            --text-dark: #0D1F10;
-            --text-muted: #6B7A6E;
-            --border: #D4EDD8;
+            --magenta:     #FF2D78;
+            --magenta-glow:#FF2D7840;
+            --cyan:        #00E5FF;
+            --cyan-glow:   #00E5FF30;
+            --violet:      #9B30FF;
+            --violet-glow: #9B30FF35;
+            --gold:        #FFD166;
+            --black:       #06010E;
+            --surface:     rgba(12, 4, 28, 0.92);
+            --glass:       rgba(255,255,255,0.04);
+            --border:      rgba(155, 48, 255, 0.25);
+            --text:        #F0E8FF;
+            --muted:       #8B7FA8;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Outfit', sans-serif;
             background: var(--black);
             min-height: 100vh;
             display: flex;
@@ -32,126 +35,192 @@
             position: relative;
         }
 
-        /* ── BACKGROUND GRADIENT ── */
-        .bg-gradient {
+        /* ══ ATMOSPHERIC BACKGROUND ══ */
+        .bg-layer {
             position: fixed;
             inset: 0;
-            background:
-                radial-gradient(ellipse 80% 60% at 20% 0%, rgba(62,196,90,0.35) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 50% at 80% 100%, rgba(255,213,1,0.28) 0%, transparent 55%),
-                radial-gradient(ellipse 100% 100% at 50% 50%, #0D1A0F 0%, #000 100%);
             z-index: 0;
         }
+        .bg-layer::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 55% 65% at 15% 10%,  rgba(155,48,255,0.30) 0%, transparent 65%),
+                radial-gradient(ellipse 50% 55% at 90% 85%,  rgba(255,45,120,0.28) 0%, transparent 60%),
+                radial-gradient(ellipse 40% 40% at 85% 5%,   rgba(0,229,255,0.18)  0%, transparent 55%),
+                radial-gradient(ellipse 100% 100% at 50% 50%, #0A0118 0%, #06010E 100%);
+        }
 
-        /* ── FLOATING FOOD PARTICLES ── */
-        .food-canvas {
+        /* Noise grain texture overlay */
+        .bg-layer::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        /* ══ NEON GRID ══ */
+        .grid-lines {
             position: fixed;
             inset: 0;
             z-index: 1;
             pointer-events: none;
+            background-image:
+                linear-gradient(rgba(155,48,255,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(155,48,255,0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 80%);
         }
 
-        .food-item {
+        /* ══ FLOATING DRINK PARTICLES ══ */
+        .drink-canvas { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+        .drink-item {
             position: absolute;
-            font-size: 1.8rem;
             opacity: 0;
-            animation: floatFood var(--dur) ease-in-out var(--delay) infinite;
-            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+            font-size: 1.6rem;
+            filter: drop-shadow(0 0 12px rgba(155,48,255,0.6)) drop-shadow(0 0 24px rgba(255,45,120,0.3));
+            animation: floatDrink var(--dur) ease-in-out var(--delay) infinite;
             will-change: transform, opacity;
         }
-
-        @keyframes floatFood {
-            0% {
-                opacity: 0;
-                transform: translateY(110vh) rotate(var(--rot-start)) scale(0.7);
-            }
-            10% { opacity: 0.9; }
-            80% { opacity: 0.7; }
-            100% {
-                opacity: 0;
-                transform: translateY(-15vh) rotate(var(--rot-end)) scale(1.1);
-            }
+        @keyframes floatDrink {
+            0%   { opacity: 0; transform: translateY(108vh) rotate(var(--r0)) scale(0.6); }
+            8%   { opacity: 0.85; }
+            75%  { opacity: 0.6; }
+            100% { opacity: 0; transform: translateY(-10vh) rotate(var(--r1)) scale(1.15); }
         }
 
-        /* ── RING DECORATION ── */
+        /* ══ GLOWING ORBS ══ */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+            animation: breatheOrb ease-in-out infinite;
+            filter: blur(80px);
+        }
+        .orb-1 {
+            width: 420px; height: 420px;
+            top: -120px; right: -100px;
+            background: radial-gradient(circle, rgba(155,48,255,0.22) 0%, transparent 70%);
+            animation-duration: 8s;
+        }
+        .orb-2 {
+            width: 320px; height: 320px;
+            bottom: -80px; left: -60px;
+            background: radial-gradient(circle, rgba(255,45,120,0.20) 0%, transparent 70%);
+            animation-duration: 11s;
+            animation-delay: -4s;
+        }
+        .orb-3 {
+            width: 200px; height: 200px;
+            top: 45%; right: 8%;
+            background: radial-gradient(circle, rgba(0,229,255,0.15) 0%, transparent 70%);
+            animation-duration: 6s;
+            animation-delay: -2s;
+        }
+        @keyframes breatheOrb {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50%       { transform: scale(1.12); opacity: 1; }
+        }
+
+        /* ══ GEOMETRIC DECO RINGS ══ */
         .ring {
             position: fixed;
             border-radius: 50%;
             border: 1px solid;
-            animation: rotateSlow linear infinite;
             pointer-events: none;
             z-index: 1;
+            animation: spinRing linear infinite;
         }
-        .ring-1 {
-            width: 500px; height: 500px;
-            top: -150px; right: -150px;
-            border-color: rgba(62,196,90,0.12);
-            animation-duration: 30s;
+        .ring-a {
+            width: 540px; height: 540px;
+            top: -180px; right: -180px;
+            border-color: rgba(155,48,255,0.10);
+            animation-duration: 40s;
         }
-        .ring-2 {
-            width: 320px; height: 320px;
-            bottom: -80px; left: -80px;
-            border-color: rgba(255,213,1,0.1);
-            animation-duration: 20s;
+        .ring-b {
+            width: 340px; height: 340px;
+            bottom: -100px; left: -100px;
+            border-color: rgba(255,45,120,0.10);
+            animation-duration: 25s;
             animation-direction: reverse;
         }
-        .ring-3 {
-            width: 200px; height: 200px;
-            top: 40%; right: 5%;
-            border-color: rgba(62,196,90,0.08);
-            animation-duration: 15s;
+        .ring-c {
+            width: 180px; height: 180px;
+            top: 38%; right: 4%;
+            border-color: rgba(0,229,255,0.08);
+            animation-duration: 18s;
         }
-        @keyframes rotateSlow {
-            from { transform: rotate(0deg); }
-            to   { transform: rotate(360deg); }
+        @keyframes spinRing {
+            to { transform: rotate(360deg); }
         }
 
-        /* ── CARD ── */
+        /* ══ CARD ══ */
         .login-container {
             position: relative;
             z-index: 10;
             width: 100%;
-            max-width: 440px;
+            max-width: 430px;
             padding: 1.5rem;
         }
 
         .login-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(24px);
-            border-radius: 2rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1.75rem;
             padding: 2.8rem 2.6rem 2.4rem;
+            backdrop-filter: blur(32px);
             box-shadow:
-                0 0 0 1px rgba(62,196,90,0.15),
-                0 30px 70px rgba(0,0,0,0.5),
-                0 0 60px rgba(62,196,90,0.08);
-            animation: cardEntrance 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+                0 0 0 1px rgba(155,48,255,0.12),
+                0 0  40px rgba(155,48,255,0.12),
+                0 0 100px rgba(255,45,120,0.06),
+                0 40px 80px rgba(0,0,0,0.6);
+            animation: cardIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
-        @keyframes cardEntrance {
-            from { opacity: 0; transform: translateY(40px) scale(0.97); }
-            to   { opacity: 1; transform: translateY(0)   scale(1); }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(50px) scale(0.96); }
+            to   { opacity: 1; transform: none; }
         }
 
-        /* ── HEADER ── */
+        /* Top neon accent line */
+        .card-top-bar {
+            position: absolute;
+            top: 0; left: 12%; right: 12%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--violet), var(--magenta), var(--cyan), transparent);
+            border-radius: 0 0 4px 4px;
+            filter: blur(0.5px);
+        }
+
+        /* ══ HEADER ══ */
         .login-header {
             text-align: center;
-            margin-bottom: 2.2rem;
+            margin-bottom: 2.4rem;
         }
 
         .logo-wrap {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 80px; height: 80px;
+            width: 82px; height: 82px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--yellow) 0%, var(--green) 100%);
-            margin-bottom: 1.1rem;
-            box-shadow: 0 8px 24px rgba(62,196,90,0.35);
-            animation: pulseLogo 3s ease-in-out infinite;
+            background: linear-gradient(135deg, #1A0530 0%, #0D001A 100%);
+            border: 1.5px solid rgba(155,48,255,0.45);
+            margin-bottom: 1.2rem;
+            box-shadow:
+                0 0 20px rgba(155,48,255,0.40),
+                0 0 50px rgba(255,45,120,0.18),
+                inset 0 0 20px rgba(155,48,255,0.10);
+            animation: glowLogo 4s ease-in-out infinite;
             overflow: hidden;
+            position: relative;
         }
-        @keyframes pulseLogo {
-            0%, 100% { box-shadow: 0 8px 24px rgba(62,196,90,0.35); transform: scale(1); }
-            50%       { box-shadow: 0 12px 36px rgba(62,196,90,0.55); transform: scale(1.04); }
+        @keyframes glowLogo {
+            0%, 100% { box-shadow: 0 0 20px rgba(155,48,255,0.40), 0 0 50px rgba(255,45,120,0.18), inset 0 0 20px rgba(155,48,255,0.10); }
+            50%       { box-shadow: 0 0 30px rgba(155,48,255,0.65), 0 0 70px rgba(255,45,120,0.30), inset 0 0 30px rgba(155,48,255,0.18); }
         }
 
         .logo-wrap img {
@@ -159,68 +228,80 @@
             object-fit: cover;
             border-radius: 50%;
         }
-
         .logo-fallback {
-            font-size: 2.4rem;
-            line-height: 1;
+            font-size: 2.6rem;
+            display: none;
+            filter: drop-shadow(0 0 12px rgba(155,48,255,0.8));
         }
 
-        .login-header h1 {
-            font-family: 'Playfair Display', serif;
-            font-size: 2.6rem;
-            font-weight: 900;
-            letter-spacing: -0.02em;
-            color: var(--text-dark);
+        .brand-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3.4rem;
+            letter-spacing: 0.18em;
+            background: linear-gradient(135deg, var(--cyan) 0%, var(--violet) 45%, var(--magenta) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             line-height: 1;
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.4rem;
+            filter: drop-shadow(0 0 20px rgba(155,48,255,0.4));
         }
 
         .header-tagline {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            font-weight: 400;
-            letter-spacing: 0.08em;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.95rem;
+            font-weight: 300;
+            color: var(--muted);
+            letter-spacing: 0.3em;
             text-transform: uppercase;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 0.6rem;
         }
         .header-tagline::before,
         .header-tagline::after {
-            content: '';
-            display: block;
-            width: 28px; height: 1px;
-            background: var(--border);
+            content: '◆';
+            font-size: 0.4rem;
+            color: var(--violet);
+            opacity: 0.7;
         }
 
-        /* ── ALERTS ── */
+        /* ══ ALERTS ══ */
         .alert {
-            padding: 0.9rem 1.1rem;
-            border-radius: 0.85rem;
+            padding: 0.85rem 1rem;
+            border-radius: 0.75rem;
             margin-bottom: 1.4rem;
-            font-size: 0.9rem;
+            font-size: 0.875rem;
             font-weight: 500;
-            animation: alertSlide 0.3s ease-out both;
+            animation: alertIn 0.3s ease both;
         }
-        @keyframes alertSlide {
-            from { opacity: 0; transform: translateY(-8px); }
-            to   { opacity: 1; transform: translateY(0); }
+        @keyframes alertIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to   { opacity: 1; transform: none; }
         }
-        .alert-success { background: #dcfce7; color: #166534; border-left: 3px solid var(--green); }
-        .alert-error   { background: #fee2e2; color: #991b1b; border-left: 3px solid #ef4444; }
+        .alert-success {
+            background: rgba(0,229,255,0.08);
+            color: var(--cyan);
+            border: 1px solid rgba(0,229,255,0.25);
+        }
+        .alert-error {
+            background: rgba(255,45,120,0.08);
+            color: #FF6B9D;
+            border: 1px solid rgba(255,45,120,0.30);
+        }
 
-        /* ── FORM ── */
+        /* ══ FORM ══ */
         .form-group { margin-bottom: 1.3rem; }
 
         .form-group label {
             display: block;
-            margin-bottom: 0.45rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.73rem;
             font-weight: 600;
-            font-size: 0.85rem;
-            color: var(--text-dark);
-            letter-spacing: 0.03em;
+            letter-spacing: 0.14em;
             text-transform: uppercase;
+            color: var(--muted);
         }
 
         .input-wrapper { position: relative; }
@@ -230,61 +311,84 @@
             left: 1rem;
             top: 50%;
             transform: translateY(-50%);
-            font-size: 1.1rem;
+            font-size: 1rem;
             z-index: 2;
+            filter: drop-shadow(0 0 6px rgba(155,48,255,0.5));
         }
 
         .form-group input {
             width: 100%;
             padding: 0.9rem 1rem 0.9rem 3rem;
-            border: 2px solid var(--border);
-            border-radius: 0.9rem;
-            font-size: 1rem;
-            font-family: 'DM Sans', sans-serif;
-            color: var(--text-dark);
-            background: #F5FFF7;
+            border: 1.5px solid rgba(155,48,255,0.20);
+            border-radius: 0.85rem;
+            font-size: 0.95rem;
+            font-family: 'Outfit', sans-serif;
+            color: var(--text);
+            background: rgba(155,48,255,0.05);
             transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+            letter-spacing: 0.02em;
         }
-        .form-group input::placeholder { color: #A8C4AE; }
+        .form-group input::placeholder { color: rgba(139,127,168,0.5); }
         .form-group input:focus {
             outline: none;
-            border-color: var(--green);
-            background: #fff;
-            box-shadow: 0 0 0 4px rgba(62,196,90,0.12);
+            border-color: var(--violet);
+            background: rgba(155,48,255,0.10);
+            box-shadow:
+                0 0  0 3px rgba(155,48,255,0.12),
+                0 0 20px rgba(155,48,255,0.15);
+        }
+        .form-group input:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 100px #110022 inset;
+            -webkit-text-fill-color: var(--text);
         }
 
-        /* ── BUTTON ── */
+        /* ══ CTA BUTTON ══ */
         .btn-primary {
             width: 100%;
             padding: 1rem;
-            background: linear-gradient(135deg, var(--yellow) 0%, #E8B800 50%, var(--black) 100%);
-            color: var(--black);
+            background: linear-gradient(135deg, var(--violet) 0%, var(--magenta) 100%);
+            color: #fff;
             border: none;
-            border-radius: 0.9rem;
-            font-size: 1rem;
-            font-family: 'DM Sans', sans-serif;
-            font-weight: 700;
-            letter-spacing: 0.05em;
+            border-radius: 0.85rem;
+            font-size: 0.85rem;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            letter-spacing: 0.18em;
             text-transform: uppercase;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 6px 20px rgba(255,213,1,0.4);
             position: relative;
             overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 6px 30px rgba(155,48,255,0.45), 0 0 60px rgba(255,45,120,0.12);
         }
-        .btn-primary::after {
+        .btn-primary::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.18) 100%);
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
             opacity: 0;
             transition: opacity 0.2s;
         }
+        /* scanline shimmer */
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -60%;
+            width: 40%; height: 200%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.20), transparent);
+            transform: skewX(-20deg);
+            animation: btnShimmer 3.5s ease-in-out infinite;
+        }
+        @keyframes btnShimmer {
+            0%, 100% { left: -60%; opacity: 0; }
+            40%       { opacity: 1; }
+            60%       { left: 130%; opacity: 0; }
+        }
         .btn-primary:hover {
             transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(255,213,1,0.5);
+            box-shadow: 0 10px 40px rgba(155,48,255,0.6), 0 0 80px rgba(255,45,120,0.20);
         }
-        .btn-primary:hover::after { opacity: 1; }
+        .btn-primary:hover::before { opacity: 1; }
         .btn-primary:active { transform: translateY(0); }
 
         .btn-text {
@@ -296,88 +400,101 @@
             gap: 0.5rem;
         }
 
-        /* ── DIVIDER ── */
+        /* ══ DIVIDER ══ */
         .divider {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            margin: 1.6rem 0 1.2rem;
-            color: #B0C4B4;
-            font-size: 0.8rem;
-            letter-spacing: 0.08em;
+            margin: 1.7rem 0 1.2rem;
+            color: rgba(139,127,168,0.5);
+            font-size: 0.72rem;
+            letter-spacing: 0.12em;
             text-transform: uppercase;
+            font-family: 'Cormorant Garamond', serif;
         }
         .divider::before, .divider::after {
             content: '';
             flex: 1;
             height: 1px;
-            background: var(--border);
+            background: linear-gradient(90deg, transparent, rgba(155,48,255,0.25), transparent);
         }
 
-        /* ── FOOTER BADGES ── */
+        /* ══ BADGE ROW ══ */
         .footer-badges {
             display: flex;
             justify-content: center;
-            gap: 0.6rem;
+            gap: 0.55rem;
             flex-wrap: wrap;
         }
         .badge {
             display: inline-flex;
             align-items: center;
             gap: 0.3rem;
-            padding: 0.35rem 0.8rem;
-            background: #F0FBF2;
-            border: 1px solid #C8E8CC;
+            padding: 0.32rem 0.75rem;
             border-radius: 2rem;
-            font-size: 0.78rem;
+            font-size: 0.75rem;
             font-weight: 500;
-            color: var(--green-dark);
+            letter-spacing: 0.04em;
+            border: 1px solid;
         }
+        .badge-violet { background: rgba(155,48,255,0.10); border-color: rgba(155,48,255,0.30); color: #C380FF; }
+        .badge-pink   { background: rgba(255,45,120,0.10); border-color: rgba(255,45,120,0.30); color: #FF7BAB; }
+        .badge-cyan   { background: rgba(0,229,255,0.08);  border-color: rgba(0,229,255,0.25);  color: #5EEEFF; }
+        .badge-gold   { background: rgba(255,209,102,0.08);border-color: rgba(255,209,102,0.25);color: #FFD166; }
 
-        /* ── BOTTOM STRIP ── */
+        /* ══ BOTTOM STRIP ══ */
         .bottom-strip {
-            margin-top: 1.8rem;
+            margin-top: 1.6rem;
             text-align: center;
-            padding: 0.8rem 1rem;
-            background: linear-gradient(90deg, rgba(62,196,90,0.08), rgba(255,213,1,0.08), rgba(62,196,90,0.08));
-            border-radius: 0.75rem;
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            letter-spacing: 0.03em;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(90deg,
+                rgba(155,48,255,0.06),
+                rgba(255,45,120,0.06),
+                rgba(0,229,255,0.06),
+                rgba(155,48,255,0.06));
+            border-radius: 0.65rem;
+            font-size: 0.76rem;
+            color: rgba(139,127,168,0.7);
+            letter-spacing: 0.06em;
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
         }
 
-        /* ── RESPONSIVE ── */
+        /* ══ RESPONSIVE ══ */
         @media (max-width: 480px) {
-            .login-card { padding: 2rem 1.6rem; }
-            .login-header h1 { font-size: 2rem; }
+            .login-card { padding: 2rem 1.5rem; }
+            .brand-name { font-size: 2.7rem; }
         }
     </style>
 </head>
 <body>
 
-    <div class="bg-gradient"></div>
+    <div class="bg-layer"></div>
+    <div class="grid-lines"></div>
 
-    <!-- Decorative rings -->
-    <div class="ring ring-1"></div>
-    <div class="ring ring-2"></div>
-    <div class="ring ring-3"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
 
-    <!-- Floating food canvas -->
-    <div class="food-canvas" id="foodCanvas"></div>
+    <div class="ring ring-a"></div>
+    <div class="ring ring-b"></div>
+    <div class="ring ring-c"></div>
+
+    <div class="drink-canvas" id="drinkCanvas"></div>
 
     <div class="login-container">
         <div class="login-card">
+            <div class="card-top-bar"></div>
 
             <div class="login-header">
                 <div class="logo-wrap">
-                    <!-- Flask template: swap img for logo, fallback to emoji -->
                     <img src="{{ url_for('static', filename='logo.jpeg') }}"
-                         alt="Punto-Saludable"
+                         alt="Euphoria"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
-                    <span class="logo-fallback" style="display:none">🌿</span>
+                    <span class="logo-fallback">🍹</span>
                 </div>
-                <h1>Punto-Saludable</h1>
-                <p class="header-tagline">Sistema de Pedidos</p>
+                <h1 class="brand-name">EUPHORIA</h1>
+                <p class="header-tagline">Cócteles &amp; Granizados</p>
             </div>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -408,60 +525,54 @@
                 </div>
 
                 <button type="submit" class="btn-primary">
-                    <span class="btn-text">⚡ Iniciar Sesión</span>
+                    <span class="btn-text">✦ Iniciar Sesión</span>
                 </button>
             </form>
 
-            <div class="divider">Punto-Saludable · Comida saludable</div>
+            <div class="divider">Euphoria · Bar & Granizados</div>
 
             <div class="footer-badges">
-                <span class="badge">🥗 Fresco</span>
-                <span class="badge">💪 Fit</span>
-                <span class="badge">🌿 Natural</span>
-                <span class="badge">🔥 Energético</span>
+                <span class="badge badge-violet">🍸 Cócteles</span>
+                <span class="badge badge-cyan">🧊 Granizados</span>
+                <span class="badge badge-pink">🎶 Ambiente</span>
+                <span class="badge badge-gold">✨ Premium</span>
             </div>
 
             <div class="bottom-strip">
-                🌱 Nutrición que inspira · Sabor que enamora
+                Donde cada trago cuenta una historia
             </div>
-
         </div>
     </div>
 
     <script>
-        // ── FLOATING FOOD ANIMATION ──
-        const foods = [
-            '🥑','🥗','🥦','🍎','🍋','🥕','🫐','🍓',
-            '🌽','🥒','🍇','🫚','🥝','🌿','💪','🍃',
-            '🫛','🥬','🍊','🫑','🥑','🍉','🌾','🥜'
+        const drinks = [
+            '🍹','🍸','🍦','🧊','🍧','🥃','🫧','🍒',
+            '🌊','💜','🫐','🍇','✨','🫧','🍬','🌙',
+            '🍹','💫','🧋','🫗','🍭','⭐','🍸','🌺'
         ];
 
-        const canvas = document.getElementById('foodCanvas');
-        const count  = 28;
+        const canvas = document.getElementById('drinkCanvas');
 
-        for (let i = 0; i < count; i++) {
-            const el = document.createElement('div');
-            el.className = 'food-item';
+        for (let i = 0; i < 26; i++) {
+            const el   = document.createElement('div');
+            el.className = 'drink-item';
 
-            const left     = Math.random() * 100;
-            const dur      = 9 + Math.random() * 12;       // 9–21s
-            const delay    = -(Math.random() * dur);         // pre-offset so they're mid-air on load
-            const rotStart = Math.random() * 60 - 30;
-            const rotEnd   = rotStart + (Math.random() * 180 - 90);
-            const size     = 1.2 + Math.random() * 1.2;
+            const dur  = 10 + Math.random() * 14;
+            const r0   = (Math.random() * 60 - 30) + 'deg';
+            const r1   = (Math.random() * 180 - 90) + 'deg';
+            const size = 1.2 + Math.random() * 1.0;
 
-            el.textContent = foods[Math.floor(Math.random() * foods.length)];
+            el.textContent = drinks[Math.floor(Math.random() * drinks.length)];
             el.style.cssText = `
-                left: ${left}%;
+                left: ${Math.random() * 100}%;
                 font-size: ${size}rem;
                 --dur: ${dur}s;
-                --delay: ${delay}s;
-                --rot-start: ${rotStart}deg;
-                --rot-end: ${rotEnd}deg;
+                --delay: ${-(Math.random() * dur)}s;
+                --r0: ${r0};
+                --r1: ${r1};
             `;
             canvas.appendChild(el);
         }
     </script>
-
 </body>
 </html>
