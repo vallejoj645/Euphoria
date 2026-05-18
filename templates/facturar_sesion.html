@@ -453,13 +453,63 @@
             <!-- Notas Adicionales -->
             <div class="form-section">
                 <h2>📝 Notas Adicionales</h2>
-                
+
                 <div class="form-group">
                     <label>Observaciones</label>
                     <textarea name="notas" rows="3" placeholder="Información adicional sobre la factura..."></textarea>
                 </div>
             </div>
-            
+
+            <!-- Facturación Electrónica DIAN -->
+            <div class="form-section" style="border:2px solid #3498db;">
+                <h2 style="color:#2980b9;">🇨🇴 Factura Electrónica DIAN</h2>
+
+                <div class="form-group">
+                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                        <input type="checkbox" name="es_electronica" value="1" id="chkElectronica"
+                               onchange="toggleFE()" style="width:20px;height:20px;">
+                        <span>Generar Factura Electrónica (CUFE + XML UBL 2.1 + QR)</span>
+                    </label>
+                    <div class="info-help" style="margin-top:8px;">
+                        💡 Genera el XML listo para firmar y enviar a la DIAN o a su PSE autorizado.
+                        {% if not config.clave_tecnica %}
+                        <br><strong style="color:#e74c3c;">⚠️ Configure la clave técnica DIAN en
+                        <a href="{{ url_for('configuracion_restaurante') }}">Configuración del Restaurante</a>
+                        antes de usar esta opción.</strong>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div id="seccionFE" style="display:none;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
+                        <div class="form-group">
+                            <label>Tipo de Documento del Cliente</label>
+                            <select name="cliente_tipo_documento">
+                                <option value="CC">Cédula de Ciudadanía (CC)</option>
+                                <option value="NIT">NIT (Empresa)</option>
+                                <option value="CE">Cédula Extranjería (CE)</option>
+                                <option value="PP">Pasaporte (PP)</option>
+                                <option value="TI">Tarjeta Identidad (TI)</option>
+                                <option value="RC">Registro Civil (RC)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Email del Cliente</label>
+                            <input type="email" name="cliente_email" placeholder="cliente@ejemplo.com">
+                            <small>Para envío electrónico de la factura</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Dirección del Cliente</label>
+                            <input type="text" name="cliente_direccion" placeholder="Calle 10 #20-30">
+                        </div>
+                        <div class="form-group">
+                            <label>Ciudad del Cliente</label>
+                            <input type="text" name="cliente_ciudad" placeholder="Zarzal">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Botones de Acción -->
             <div class="actions">
                 <button type="submit" class="btn btn-success">✅ Generar Factura</button>
@@ -570,9 +620,14 @@
             }
         });
         
+        // Mostrar/ocultar sección de factura electrónica
+        function toggleFE() {
+            const chk = document.getElementById('chkElectronica');
+            document.getElementById('seccionFE').style.display = chk.checked ? 'block' : 'none';
+        }
+
         // Auto-focus en el primer campo al cargar
         document.addEventListener('DOMContentLoaded', function() {
-            // Calcular total inicial
             calcularTotal();
         });
     </script>
