@@ -1,6 +1,6 @@
 {
-  "name": "Restaurante - Panel",
-  "short_name": "P-saludable",
+  "name": "La Parrilla Restaurante",
+  "short_name": "Parrilla",
   "description": "Panel de gestión del restaurante",
   "start_url": "/dashboard",
   "scope": "/",
