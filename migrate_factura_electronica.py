@@ -1,5 +1,6 @@
 """
 Migración: agrega columnas de facturación electrónica DIAN.
+Compatible con PostgreSQL y SQLite.
 Ejecutar una sola vez: python migrate_factura_electronica.py
 """
 
@@ -12,23 +13,38 @@ from app import app, db
 from sqlalchemy import text
 
 
+def es_postgres(conn):
+    return 'postgresql' in str(conn.engine.url).lower() if hasattr(conn, 'engine') else False
+
+
 def columna_existe(conn, tabla, columna):
-    resultado = conn.execute(
-        text("SELECT COUNT(*) FROM pragma_table_info(:t) WHERE name=:c"),
-        {"t": tabla, "c": columna}
-    )
+    dialect = conn.engine.dialect.name
+    if dialect == 'postgresql':
+        resultado = conn.execute(
+            text("""
+                SELECT COUNT(*) FROM information_schema.columns
+                WHERE table_name = :t AND column_name = :c
+            """),
+            {"t": tabla, "c": columna}
+        )
+    else:
+        # SQLite
+        resultado = conn.execute(
+            text("SELECT COUNT(*) FROM pragma_table_info(:t) WHERE name=:c"),
+            {"t": tabla, "c": columna}
+        )
     return resultado.scalar() > 0
 
 
 COLUMNAS_FACTURA = [
-    ("es_electronica",        "BOOLEAN DEFAULT 0"),
-    ("cufe",                  "VARCHAR(200)"),
-    ("xml_content",           "TEXT"),
-    ("qr_base64",             "TEXT"),
+    ("es_electronica",         "BOOLEAN DEFAULT FALSE"),
+    ("cufe",                   "VARCHAR(200)"),
+    ("xml_content",            "TEXT"),
+    ("qr_base64",              "TEXT"),
     ("cliente_tipo_documento", "VARCHAR(10) DEFAULT 'CC'"),
-    ("cliente_email",         "VARCHAR(200)"),
-    ("cliente_direccion",     "VARCHAR(300)"),
-    ("cliente_ciudad",        "VARCHAR(100)"),
+    ("cliente_email",          "VARCHAR(200)"),
+    ("cliente_direccion",      "VARCHAR(300)"),
+    ("cliente_ciudad",         "VARCHAR(100)"),
 ]
 
 COLUMNAS_CONFIG = [
@@ -50,19 +66,19 @@ def migrar():
         with db.engine.connect() as conn:
             for col, tipo in COLUMNAS_FACTURA:
                 if not columna_existe(conn, "factura", col):
-                    conn.execute(text(f"ALTER TABLE factura ADD COLUMN {col} {tipo}"))
+                    conn.execute(text(f'ALTER TABLE factura ADD COLUMN {col} {tipo}'))
+                    conn.commit()
                     print(f"  + factura.{col}")
                 else:
                     print(f"  = factura.{col} ya existe")
 
             for col, tipo in COLUMNAS_CONFIG:
                 if not columna_existe(conn, "configuracion_restaurante", col):
-                    conn.execute(text(f"ALTER TABLE configuracion_restaurante ADD COLUMN {col} {tipo}"))
+                    conn.execute(text(f'ALTER TABLE configuracion_restaurante ADD COLUMN {col} {tipo}'))
+                    conn.commit()
                     print(f"  + configuracion_restaurante.{col}")
                 else:
                     print(f"  = configuracion_restaurante.{col} ya existe")
-
-            conn.commit()
 
     print("\nMigración completada.")
 
