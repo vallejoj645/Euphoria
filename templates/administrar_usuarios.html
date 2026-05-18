@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administrar Usuarios - Restaurante</title>
+    <title>Administrar Usuarios - La Parrilla Restaurante</title>
     <style>
         * {
             margin: 0;
@@ -246,6 +246,11 @@
             color: #92400e;
         }
 
+        .badge-administracion {
+            background: #fff7ed;
+            color: #c2410c;
+        }
+
         .badge-mesero {
             background: #dbeafe;
             color: #1e40af;
@@ -266,7 +271,7 @@
 <body>
     <nav class="navbar">
         <div class="nav-container">
-            <div class="nav-brand">Euphoria</div>
+            <div class="nav-brand">La Parrilla Restaurante</div>
             <div class="nav-menu">
                 <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
                 <a href="{{ url_for('administrar_mesas') }}" class="nav-link">Mesas</a>
@@ -317,7 +322,8 @@
                         <select id="rol" name="rol" required>
                             <option value="mesero">Mesero</option>
                             <option value="cocina">Cocina</option>
-                            <option value="admin">Administrador</option>
+                            <option value="administracion">Administración (sin finanzas)</option>
+                            <option value="admin">Administrador completo</option>
                         </select>
                     </div>
                     

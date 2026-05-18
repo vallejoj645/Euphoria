@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Restaurante</title>
+    <title>Dashboard - La Parrilla Restaurante</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 
     <!-- PWA -->
@@ -696,7 +696,7 @@
     <!-- Navbar -->
     <nav class="navbar">
         <div class="nav-container">
-            <div class="nav-brand">Euphoria</div>
+            <div class="nav-brand">La Parrilla Restaurante</div>
     
             <button class="nav-toggle" id="navToggle" aria-label="Abrir menú" aria-expanded="false">
                 <span></span>
@@ -720,13 +720,15 @@
                     <a href="{{ url_for('nuevo_domicilio') }}" class="nav-link">Nuevo Domicilio</a>
                 {% endif %}
     
-                {% if current_user.rol == 'admin' %}
-                    <a href="{{ url_for('lista_gastos') }}" class="nav-link">Gastos</a>
-                    <a href="{{ url_for('reporte_financiero') }}" class="nav-link">Reportes</a>
+                {% if current_user.rol in ['admin', 'administracion'] %}
                     <a href="{{ url_for('administrar_menu') }}" class="nav-link">Menú</a>
                     <a href="{{ url_for('administrar_mesas') }}" class="nav-link">Mesas</a>
                     <a href="{{ url_for('administrar_usuarios') }}" class="nav-link">Usuarios</a>
                     <a href="{{ url_for('configuracion_restaurante') }}" class="nav-link">⚙️ Config</a>
+                {% endif %}
+                {% if current_user.rol == 'admin' %}
+                    <a href="{{ url_for('lista_gastos') }}" class="nav-link">Gastos</a>
+                    <a href="{{ url_for('reporte_financiero') }}" class="nav-link">Reportes</a>
                 {% endif %}
     
                 <span class="nav-user">👤 {{ current_user.nombre }} ({{ current_user.rol|title }})</span>
@@ -862,9 +864,9 @@
         {% endif %}
     </div>
 
-        <!-- SECCIÓN: Accesos Rápidos para ADMINISTRADORES -->
+        <!-- SECCIÓN: Accesos Rápidos para ADMINISTRADORES (finanzas, solo admin) -->
         {% if current_user.rol == 'admin' %}
-        
+
         <!-- Control Financiero -->
         <div class="quick-access-section">
             <h2 class="section-title">Control Financiero</h2>
@@ -875,19 +877,16 @@
                 </a>
 
                 <a href="{{ url_for('cuentas_por_cobrar') }}" class="quick-access-card qa-success">
-                    
                     <div class="quick-access-title">Cuentas por Cobrar</div>
                     <div class="quick-access-desc">Deudas de clientes</div>
                 </a>
 
                 <a href="{{ url_for('lista_presupuestos') }}" class="quick-access-card qa-warning">
-                    
                     <div class="quick-access-title">Presupuestos</div>
                     <div class="quick-access-desc">Límites de gasto</div>
                 </a>
 
                 <a href="{{ url_for('reporte_financiero') }}" class="quick-access-card qa-info">
-                    
                     <div class="quick-access-title">Reporte Financiero</div>
                     <div class="quick-access-desc">Ingresos vs Gastos</div>
                 </a>
@@ -901,25 +900,21 @@
             <h2 class="section-title">Gestión de Gastos e Ingresos</h2>
             <div class="quick-access-grid">
                 <a href="{{ url_for('lista_gastos') }}" class="quick-access-card qa-danger">
-                    
                     <div class="quick-access-title">Gestión de Gastos</div>
                     <div class="quick-access-desc">Registrar y consultar egresos</div>
                 </a>
 
                 <a href="{{ url_for('lista_proveedores') }}" class="quick-access-card">
-                    
                     <div class="quick-access-title">Proveedores</div>
                     <div class="quick-access-desc">Base de datos de proveedores</div>
                 </a>
 
                 <a href="{{ url_for('lista_facturas') }}" class="quick-access-card qa-info">
-                    
                     <div class="quick-access-title">Facturas</div>
                     <div class="quick-access-desc">Consultar facturas emitidas</div>
                 </a>
 
                 <a href="{{ url_for('historial') }}" class="quick-access-card qa-warning">
-                    
                     <div class="quick-access-title">Historial</div>
                     <div class="quick-access-desc">Ver sesiones y ventas</div>
                 </a>
@@ -927,47 +922,65 @@
         </div>
 
         <div class="divider"></div>
+        {% endif %}
+
+        <!-- SECCIÓN: Gestión Operativa (admin + administracion) -->
+        {% if current_user.rol in ['admin', 'administracion'] %}
+
+        {% if current_user.rol == 'administracion' %}
+        <!-- Facturas e historial para administracion (sin sección financiera) -->
+        <div class="quick-access-section">
+            <h2 class="section-title">Facturas e Historial</h2>
+            <div class="quick-access-grid">
+                <a href="{{ url_for('lista_facturas') }}" class="quick-access-card qa-info">
+                    <div class="quick-access-title">Facturas</div>
+                    <div class="quick-access-desc">Consultar facturas emitidas</div>
+                </a>
+
+                <a href="{{ url_for('historial') }}" class="quick-access-card qa-warning">
+                    <div class="quick-access-title">Historial</div>
+                    <div class="quick-access-desc">Ver sesiones y ventas</div>
+                </a>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+        {% endif %}
 
         <!-- Configuración del Restaurante -->
         <div class="quick-access-section">
             <h2 class="section-title">⚙️ Configuración del Restaurante</h2>
             <div class="quick-access-grid">
                 <a href="{{ url_for('administrar_menu') }}" class="quick-access-card qa-purple">
-                    
                     <div class="quick-access-title">Gestionar Menú</div>
                     <div class="quick-access-desc">Editar platillos y precios</div>
                 </a>
 
                 <a href="{{ url_for('administrar_mesas') }}" class="quick-access-card">
-                    
                     <div class="quick-access-title">Gestionar Mesas</div>
                     <div class="quick-access-desc">Configurar mesas</div>
                 </a>
 
                 <a href="{{ url_for('lista_consumos_internos') }}" class="quick-access-card qa-danger">
-                    
                     <div class="quick-access-title">Consumo Interno</div>
                     <div class="quick-access-desc">Registrar artículos retirados para uso interno</div>
                 </a>
 
                 <a href="{{ url_for('administrar_usuarios') }}" class="quick-access-card">
-                    
                     <div class="quick-access-title">Usuarios</div>
                     <div class="quick-access-desc">Gestionar empleados</div>
                 </a>
 
                 <a href="{{ url_for('configuracion_restaurante') }}" class="quick-access-card">
-                    
                     <div class="quick-access-title">Configuración</div>
                     <div class="quick-access-desc">Datos del restaurante</div>
                 </a>
 
                 <a href="{{ url_for('menu_publico') }}" class="quick-access-card qa-primary" target="_blank">
-                    
                     <div class="quick-access-title">Menú Público</div>
                     <div class="quick-access-desc">Ver menú de clientes</div>
                 </a>
-                
+
             </div>
         </div>
 
