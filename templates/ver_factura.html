@@ -44,6 +44,11 @@
                 <button onclick="window.print()" class="btn btn-success">
                     <i class="fas fa-print"></i> Imprimir Factura
                 </button>
+                {% if factura.es_electronica and factura.xml_content %}
+                <a href="{{ url_for('descargar_xml_factura', factura_id=factura.id) }}" class="btn btn-primary">
+                    <i class="fas fa-file-code"></i> Descargar XML
+                </a>
+                {% endif %}
                 {% if current_user.rol == 'admin' %}
                 <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalEliminarFactura">
                     <i class="fas fa-trash"></i> Eliminar
@@ -218,6 +223,25 @@
         <div class="mb-2">
             <p class="mb-0 small"><strong>NOTAS:</strong></p>
             <p class="mb-0 small">{{ factura.notas }}</p>
+        </div>
+        {% endif %}
+
+        {% if factura.es_electronica and factura.cufe %}
+        <div class="separador"></div>
+
+        <!-- FACTURA ELECTRÓNICA DIAN -->
+        <div class="mb-2">
+            <p class="mb-0 small text-center"><strong>FACTURA ELECTRÓNICA DE VENTA</strong></p>
+            <p class="mb-0 small" style="word-break:break-all;font-size:9px;">
+                <strong>CUFE:</strong> {{ factura.cufe }}
+            </p>
+            {% if factura.qr_base64 %}
+            <div class="text-center mt-1">
+                <img src="data:image/png;base64,{{ factura.qr_base64 }}"
+                     alt="QR DIAN" style="width:80px;height:80px;">
+                <p class="mb-0" style="font-size:8px;">Verifique en DIAN</p>
+            </div>
+            {% endif %}
         </div>
         {% endif %}
 

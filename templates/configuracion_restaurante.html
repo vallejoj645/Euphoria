@@ -103,7 +103,87 @@
                     <small>URL de la imagen del logo (opcional)</small>
                 </div>
             </div>
-            
+
+            <!-- ============================================================ -->
+            <!-- SECCIÓN FACTURACIÓN ELECTRÓNICA DIAN                         -->
+            <!-- ============================================================ -->
+            <h2 style="color:#2c3e50;margin:30px 0 15px;padding-top:20px;border-top:2px solid #ecf0f1;">
+                🇨🇴 Facturación Electrónica DIAN
+            </h2>
+            <p style="color:#7f8c8d;margin-bottom:20px;font-size:13px;">
+                Configure estos datos para generar facturas electrónicas UBL 2.1 con CUFE y código QR.
+                Obtenga la clave técnica, software ID y PIN en el portal de la DIAN (Muisca).
+            </p>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Ambiente DIAN</label>
+                    <select name="ambiente_dian">
+                        <option value="2" {% if (config.ambiente_dian or '2') == '2' %}selected{% endif %}>🧪 Habilitación (pruebas)</option>
+                        <option value="1" {% if config.ambiente_dian == '1' %}selected{% endif %}>🏭 Producción</option>
+                    </select>
+                    <small>Use habilitación mientras prueba; cambie a producción cuando la DIAN lo autorice</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Número de Resolución DIAN</label>
+                    <input type="text" name="numero_resolucion" value="{{ config.numero_resolucion or '' }}" placeholder="18760000001">
+                    <small>Solo el número (sin "Resolución" ni fecha)</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Prefijo de Facturación</label>
+                    <input type="text" name="prefijo_facturacion" value="{{ config.prefijo_facturacion or 'FACT' }}" placeholder="SFFE" maxlength="10">
+                    <small>Prefijo autorizado por la DIAN (ej: SFFE, FV, etc.)</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Clave Técnica</label>
+                    <input type="text" name="clave_tecnica" value="{{ config.clave_tecnica or '' }}" placeholder="fc8eac422eba16e22ffd8c6f94b3f40a6e38162c">
+                    <small>Clave técnica del set de pruebas o de producción asignada por la DIAN</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Software ID</label>
+                    <input type="text" name="software_id" value="{{ config.software_id or '' }}" placeholder="UUID del software registrado en DIAN">
+                    <small>Identificador del software en el portal DIAN</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Software PIN</label>
+                    <input type="text" name="software_pin" value="{{ config.software_pin or '' }}" placeholder="12345">
+                    <small>PIN del software asignado por la DIAN</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo de Persona</label>
+                    <select name="tipo_persona">
+                        <option value="juridica" {% if (config.tipo_persona or 'juridica') == 'juridica' %}selected{% endif %}>Persona Jurídica</option>
+                        <option value="natural" {% if config.tipo_persona == 'natural' %}selected{% endif %}>Persona Natural</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Código de Régimen DIAN</label>
+                    <select name="codigo_regimen">
+                        <option value="O-13" {% if (config.codigo_regimen or 'O-13') == 'O-13' %}selected{% endif %}>O-13 — Responsable de IVA</option>
+                        <option value="O-47" {% if config.codigo_regimen == 'O-47' %}selected{% endif %}>O-47 — No responsable de IVA</option>
+                    </select>
+                    <small>Conforme al listado 48 de DIAN</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Departamento</label>
+                    <input type="text" name="departamento" value="{{ config.departamento or '' }}" placeholder="Valle del Cauca">
+                    <small>Nombre del departamento (para el XML)</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Ciudad (nombre exacto)</label>
+                    <input type="text" name="ciudad_nombre" value="{{ config.ciudad_nombre or '' }}" placeholder="Zarzal">
+                    <small>Solo el nombre de la ciudad, sin departamento</small>
+                </div>
+            </div>
+
             <div class="actions">
                 <button type="submit" class="btn btn-success">💾 Guardar Configuración</button>
                 <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">❌ Cancelar</a>
