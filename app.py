@@ -39,6 +39,11 @@ logger = logging.getLogger(__name__)
 logger.info("Iniciando aplicación Flask...")
 
 
+def es_gestor():
+    """True para admin y administracion."""
+    return current_user.is_authenticated and current_user.rol in ['admin', 'administracion']
+
+
 
 # Cargar .env en desarrollo si existe
 if os.path.exists('.env'):
@@ -90,7 +95,7 @@ class Usuario(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
     nombre = db.Column(db.String(100), nullable=False)
-    rol = db.Column(db.String(20), default='mesero')  # mesero, cocina, admin
+    rol = db.Column(db.String(20), default='mesero')  # mesero, cocina, admin, administracion
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -1221,10 +1226,10 @@ def marcar_factura_pagada(factura_id):
 @login_required
 def configuracion_restaurante():
     """Configurar datos del restaurante"""
-    if current_user.rol != 'admin':
-        flash('Solo los administradores pueden modificar la configuración', 'error')
+    if current_user.rol not in ['admin', 'administracion']:
+        flash('Solo administradores pueden modificar la configuración', 'error')
         return redirect(url_for('dashboard'))
-    
+
     config = ConfiguracionRestaurante.query.first()
     
     if not config:
@@ -1784,7 +1789,7 @@ def historial():
 @app.route("/administrar_mesas", methods=["GET", "POST"])
 @login_required
 def administrar_mesas():
-    if current_user.rol != 'admin':
+    if current_user.rol not in ['admin', 'administracion']:
         flash('Solo los administradores pueden gestionar mesas', 'error')
         return redirect(url_for('dashboard'))
     
@@ -1859,7 +1864,7 @@ def administrar_mesas():
 @app.route("/administrar_usuarios", methods=["GET", "POST"])
 @login_required
 def administrar_usuarios():
-    if current_user.rol != 'admin':
+    if current_user.rol not in ['admin', 'administracion']:
         flash('Solo los administradores pueden gestionar usuarios', 'error')
         return redirect(url_for('dashboard'))
     
@@ -1921,7 +1926,7 @@ def verificar_nuevos_pedidos():
 @app.route("/eliminar_usuario/<int:user_id>", methods=["POST", "GET"])
 @login_required
 def eliminar_usuario(user_id):
-    if current_user.rol != 'admin':
+    if current_user.rol not in ['admin', 'administracion']:
         flash('Solo los administradores pueden eliminar usuarios', 'error')
         return redirect(url_for('dashboard'))
     
@@ -1996,7 +2001,7 @@ def menu_publico():
 @login_required
 def administrar_menu():
     """Panel de administración del menú"""
-    if current_user.rol != 'admin':
+    if current_user.rol not in ['admin', 'administracion']:
         flash('Solo los administradores pueden gestionar el menú', 'error')
         return redirect(url_for('dashboard'))
     
@@ -2008,7 +2013,7 @@ def administrar_menu():
 @app.route("/agregar_categoria", methods=["POST"])
 @login_required
 def agregar_categoria():
-    if current_user.rol != 'admin':
+    if current_user.rol not in ['admin', 'administracion']:
         flash('Solo los administradores pueden agregar categorías', 'error')
         return redirect(url_for('dashboard'))
     
@@ -2025,7 +2030,7 @@ def agregar_categoria():
 @app.route("/agregar_item", methods=["POST"])
 @login_required
 def agregar_item():
-    if current_user.rol != 'admin':
+    if current_user.rol not in ['admin', 'administracion']:
         flash('Solo los administradores pueden agregar items', 'error')
         return redirect(url_for('dashboard'))
     
@@ -2054,7 +2059,7 @@ def agregar_item():
 @app.route("/editar_item/<int:item_id>", methods=["POST"])
 @login_required
 def editar_item(item_id):
-    if current_user.rol != 'admin':
+    if current_user.rol not in ['admin', 'administracion']:
         flash('Solo los administradores pueden editar items', 'error')
         return redirect(url_for('dashboard'))
     
@@ -2075,7 +2080,7 @@ def editar_item(item_id):
 @app.route("/toggle_item/<int:item_id>")
 @login_required
 def toggle_item(item_id):
-    if current_user.rol != 'admin':
+    if current_user.rol not in ['admin', 'administracion']:
         flash('Solo los administradores pueden modificar items', 'error')
         return redirect(url_for('dashboard'))
     
@@ -2090,7 +2095,7 @@ def toggle_item(item_id):
 @app.route("/eliminar_item/<int:item_id>", methods=["POST"])
 @login_required
 def eliminar_item(item_id):
-    if current_user.rol != 'admin':
+    if current_user.rol not in ['admin', 'administracion']:
         flash('Solo los administradores pueden eliminar items', 'error')
         return redirect(url_for('dashboard'))
     
@@ -2105,7 +2110,7 @@ def eliminar_item(item_id):
 @app.route("/eliminar_categoria/<int:categoria_id>", methods=["POST"])
 @login_required
 def eliminar_categoria(categoria_id):
-    if current_user.rol != 'admin':
+    if current_user.rol not in ['admin', 'administracion']:
         flash('Solo los administradores pueden eliminar categorías', 'error')
         return redirect(url_for('dashboard'))
     
@@ -3244,7 +3249,7 @@ def editar_domicilio(domicilio_id):
     domicilio = Domicilio.query.get_or_404(domicilio_id)
     
     # Solo se puede editar si no ha sido entregado
-    if domicilio.estado == EstadoDomicilio.ENTREGADO and current_user.rol != 'admin':
+    if domicilio.estado == EstadoDomicilio.ENTREGADO and current_user.rol not in ['admin', 'administracion']:
         flash('No se puede editar un domicilio ya entregado', 'error')
         return redirect(url_for('ver_domicilio', domicilio_id=domicilio_id))
     
@@ -3498,7 +3503,7 @@ def lista_zonas_delivery():
     """
     RAZÓN: Administrar zonas de cobertura y costos de envío.
     """
-    if current_user.rol != 'admin':
+    if current_user.rol not in ['admin', 'administracion']:
         flash('Solo administradores pueden gestionar zonas', 'error')
         return redirect(url_for('dashboard'))
     
@@ -3513,7 +3518,7 @@ def nueva_zona_delivery():
     """
     RAZÓN: Crear una nueva zona de delivery.
     """
-    if current_user.rol != 'admin':
+    if current_user.rol not in ['admin', 'administracion']:
         flash('Solo administradores pueden crear zonas', 'error')
         return redirect(url_for('dashboard'))
     
@@ -3541,7 +3546,7 @@ def editar_zona_delivery(zona_id):
     """
     RAZÓN: Editar una zona existente.
     """
-    if current_user.rol != 'admin':
+    if current_user.rol not in ['admin', 'administracion']:
         flash('Solo administradores pueden editar zonas', 'error')
         return redirect(url_for('dashboard'))
     
@@ -3565,7 +3570,7 @@ def toggle_zona_delivery(zona_id):
     """
     RAZÓN: Activar/desactivar una zona.
     """
-    if current_user.rol != 'admin':
+    if current_user.rol not in ['admin', 'administracion']:
         flash('Solo administradores pueden modificar zonas', 'error')
         return redirect(url_for('dashboard'))
     
