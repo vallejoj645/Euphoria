@@ -3,30 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión - Euphoria</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Bebas+Neue&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <title>Iniciar Sesión - La Parrilla Restaurante</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --magenta:     #FF2D78;
-            --magenta-glow:#FF2D7840;
-            --cyan:        #00E5FF;
-            --cyan-glow:   #00E5FF30;
-            --violet:      #9B30FF;
-            --violet-glow: #9B30FF35;
-            --gold:        #FFD166;
-            --black:       #06010E;
-            --surface:     rgba(12, 4, 28, 0.92);
-            --glass:       rgba(255,255,255,0.04);
-            --border:      rgba(155, 48, 255, 0.25);
-            --text:        #F0E8FF;
-            --muted:       #8B7FA8;
+            --fire:       #FF6B1A;
+            --ember:      #FF3D00;
+            --gold:       #FFB347;
+            --gold-light: #FFD580;
+            --charcoal:   #0F0A05;
+            --dark:       #1A0F07;
+            --surface:    rgba(20, 11, 4, 0.93);
+            --border:     rgba(255, 107, 26, 0.22);
+            --text:       #F5E6D0;
+            --muted:      #9C7B5A;
         }
 
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Outfit', sans-serif;
-            background: var(--black);
+            background: var(--charcoal);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -35,162 +32,150 @@
             position: relative;
         }
 
-        /* ══ ATMOSPHERIC BACKGROUND ══ */
+        /* ══ FONDO BRASAS ══ */
         .bg-layer {
             position: fixed;
             inset: 0;
             z-index: 0;
-        }
-        .bg-layer::before {
-            content: '';
-            position: absolute;
-            inset: 0;
             background:
-                radial-gradient(ellipse 55% 65% at 15% 10%,  rgba(155,48,255,0.30) 0%, transparent 65%),
-                radial-gradient(ellipse 50% 55% at 90% 85%,  rgba(255,45,120,0.28) 0%, transparent 60%),
-                radial-gradient(ellipse 40% 40% at 85% 5%,   rgba(0,229,255,0.18)  0%, transparent 55%),
-                radial-gradient(ellipse 100% 100% at 50% 50%, #0A0118 0%, #06010E 100%);
+                radial-gradient(ellipse 60% 50% at 20% 100%, rgba(255,61,0,0.35)   0%, transparent 60%),
+                radial-gradient(ellipse 50% 45% at 80% 95%,  rgba(255,107,26,0.28) 0%, transparent 55%),
+                radial-gradient(ellipse 70% 40% at 50% 100%, rgba(255,179,71,0.15) 0%, transparent 50%),
+                radial-gradient(ellipse 100% 100% at 50% 50%, #1A0F07 0%, #0F0A05 100%);
         }
 
-        /* Noise grain texture overlay */
+        /* Textura humo */
         .bg-layer::after {
             content: '';
             position: absolute;
             inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-            opacity: 0.35;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+            opacity: 0.4;
             pointer-events: none;
         }
 
-        /* ══ NEON GRID ══ */
-        .grid-lines {
+        /* ══ LÍNEAS DE PARRILLA ══ */
+        .grill-lines {
             position: fixed;
             inset: 0;
             z-index: 1;
             pointer-events: none;
             background-image:
-                linear-gradient(rgba(155,48,255,0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(155,48,255,0.04) 1px, transparent 1px);
-            background-size: 60px 60px;
-            mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 80%);
+                linear-gradient(rgba(255,107,26,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,107,26,0.04) 1px, transparent 1px);
+            background-size: 48px 48px;
+            mask-image: radial-gradient(ellipse 70% 70% at 50% 80%, black 20%, transparent 75%);
         }
 
-        /* ══ FLOATING DRINK PARTICLES ══ */
-        .drink-canvas { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
-        .drink-item {
-            position: absolute;
-            opacity: 0;
-            font-size: 1.6rem;
-            filter: drop-shadow(0 0 12px rgba(155,48,255,0.6)) drop-shadow(0 0 24px rgba(255,45,120,0.3));
-            animation: floatDrink var(--dur) ease-in-out var(--delay) infinite;
-            will-change: transform, opacity;
-        }
-        @keyframes floatDrink {
-            0%   { opacity: 0; transform: translateY(108vh) rotate(var(--r0)) scale(0.6); }
-            8%   { opacity: 0.85; }
-            75%  { opacity: 0.6; }
-            100% { opacity: 0; transform: translateY(-10vh) rotate(var(--r1)) scale(1.15); }
-        }
-
-        /* ══ GLOWING ORBS ══ */
+        /* ══ ORBES DE FUEGO ══ */
         .orb {
             position: fixed;
             border-radius: 50%;
             pointer-events: none;
             z-index: 1;
-            animation: breatheOrb ease-in-out infinite;
             filter: blur(80px);
+            animation: breathe ease-in-out infinite;
         }
         .orb-1 {
-            width: 420px; height: 420px;
-            top: -120px; right: -100px;
-            background: radial-gradient(circle, rgba(155,48,255,0.22) 0%, transparent 70%);
-            animation-duration: 8s;
+            width: 500px; height: 280px;
+            bottom: -80px; left: 50%;
+            transform: translateX(-50%);
+            background: radial-gradient(ellipse, rgba(255,61,0,0.30) 0%, transparent 70%);
+            animation-duration: 4s;
         }
         .orb-2 {
-            width: 320px; height: 320px;
-            bottom: -80px; left: -60px;
-            background: radial-gradient(circle, rgba(255,45,120,0.20) 0%, transparent 70%);
-            animation-duration: 11s;
-            animation-delay: -4s;
-        }
-        .orb-3 {
-            width: 200px; height: 200px;
-            top: 45%; right: 8%;
-            background: radial-gradient(circle, rgba(0,229,255,0.15) 0%, transparent 70%);
+            width: 300px; height: 200px;
+            bottom: -40px; left: -40px;
+            background: radial-gradient(ellipse, rgba(255,107,26,0.22) 0%, transparent 70%);
             animation-duration: 6s;
             animation-delay: -2s;
         }
-        @keyframes breatheOrb {
-            0%, 100% { transform: scale(1); opacity: 0.8; }
-            50%       { transform: scale(1.12); opacity: 1; }
+        .orb-3 {
+            width: 280px; height: 180px;
+            bottom: -30px; right: -30px;
+            background: radial-gradient(ellipse, rgba(255,179,71,0.18) 0%, transparent 70%);
+            animation-duration: 5s;
+            animation-delay: -1s;
+        }
+        @keyframes breathe {
+            0%, 100% { opacity: 0.7; transform: scaleX(1) scaleY(1); }
+            50%       { opacity: 1;   transform: scaleX(1.08) scaleY(1.12); }
+        }
+        .orb-1 { transform: none; }
+
+        /* ══ PARTÍCULAS FLOTANTES ══ */
+        .particle-canvas { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+        .particle {
+            position: absolute;
+            opacity: 0;
+            animation: riseUp var(--dur) ease-in var(--delay) infinite;
+            will-change: transform, opacity;
+            filter: drop-shadow(0 0 6px rgba(255,107,26,0.7));
+        }
+        @keyframes riseUp {
+            0%   { opacity: 0;    transform: translateY(100vh) scale(0.5) rotate(var(--r0)); }
+            10%  { opacity: 0.9; }
+            70%  { opacity: 0.4; }
+            100% { opacity: 0;    transform: translateY(-10vh) scale(1.2) rotate(var(--r1)); }
         }
 
-        /* ══ GEOMETRIC DECO RINGS ══ */
+        /* ══ ANILLOS DECORATIVOS ══ */
         .ring {
             position: fixed;
             border-radius: 50%;
             border: 1px solid;
             pointer-events: none;
             z-index: 1;
-            animation: spinRing linear infinite;
+            animation: spin linear infinite;
         }
         .ring-a {
-            width: 540px; height: 540px;
-            top: -180px; right: -180px;
-            border-color: rgba(155,48,255,0.10);
-            animation-duration: 40s;
+            width: 600px; height: 600px;
+            bottom: -280px; left: 50%; transform: translateX(-50%);
+            border-color: rgba(255,107,26,0.08);
+            animation-duration: 50s;
         }
         .ring-b {
-            width: 340px; height: 340px;
-            bottom: -100px; left: -100px;
-            border-color: rgba(255,45,120,0.10);
-            animation-duration: 25s;
+            width: 400px; height: 400px;
+            bottom: -180px; left: 50%; transform: translateX(-50%);
+            border-color: rgba(255,61,0,0.06);
+            animation-duration: 30s;
             animation-direction: reverse;
         }
-        .ring-c {
-            width: 180px; height: 180px;
-            top: 38%; right: 4%;
-            border-color: rgba(0,229,255,0.08);
-            animation-duration: 18s;
-        }
-        @keyframes spinRing {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: translateX(-50%) rotate(360deg); } }
 
         /* ══ CARD ══ */
         .login-container {
             position: relative;
             z-index: 10;
             width: 100%;
-            max-width: 430px;
+            max-width: 420px;
             padding: 1.5rem;
         }
 
         .login-card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 1.75rem;
+            border-radius: 1.5rem;
             padding: 2.8rem 2.6rem 2.4rem;
-            backdrop-filter: blur(32px);
+            backdrop-filter: blur(24px);
             box-shadow:
-                0 0 0 1px rgba(155,48,255,0.12),
-                0 0  40px rgba(155,48,255,0.12),
-                0 0 100px rgba(255,45,120,0.06),
-                0 40px 80px rgba(0,0,0,0.6);
-            animation: cardIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+                0 0 0 1px rgba(255,107,26,0.10),
+                0 0  40px rgba(255,61,0,0.15),
+                0 0  80px rgba(255,107,26,0.08),
+                0 40px 80px rgba(0,0,0,0.7);
+            animation: cardIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         @keyframes cardIn {
-            from { opacity: 0; transform: translateY(50px) scale(0.96); }
+            from { opacity: 0; transform: translateY(40px) scale(0.97); }
             to   { opacity: 1; transform: none; }
         }
 
-        /* Top neon accent line */
+        /* Borde superior caliente */
         .card-top-bar {
             position: absolute;
-            top: 0; left: 12%; right: 12%;
+            top: 0; left: 10%; right: 10%;
             height: 2px;
-            background: linear-gradient(90deg, transparent, var(--violet), var(--magenta), var(--cyan), transparent);
+            background: linear-gradient(90deg, transparent, var(--ember), var(--fire), var(--gold), transparent);
             border-radius: 0 0 4px 4px;
             filter: blur(0.5px);
         }
@@ -198,73 +183,71 @@
         /* ══ HEADER ══ */
         .login-header {
             text-align: center;
-            margin-bottom: 2.4rem;
+            margin-bottom: 2.2rem;
         }
 
         .logo-wrap {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 82px; height: 82px;
+            width: 86px; height: 86px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #1A0530 0%, #0D001A 100%);
-            border: 1.5px solid rgba(155,48,255,0.45);
+            background: radial-gradient(circle, #2A1205 0%, #150800 100%);
+            border: 1.5px solid rgba(255,107,26,0.40);
             margin-bottom: 1.2rem;
             box-shadow:
-                0 0 20px rgba(155,48,255,0.40),
-                0 0 50px rgba(255,45,120,0.18),
-                inset 0 0 20px rgba(155,48,255,0.10);
-            animation: glowLogo 4s ease-in-out infinite;
+                0 0 20px rgba(255,61,0,0.40),
+                0 0 50px rgba(255,107,26,0.15),
+                inset 0 0 20px rgba(255,61,0,0.08);
+            animation: glowLogo 3s ease-in-out infinite;
             overflow: hidden;
-            position: relative;
         }
         @keyframes glowLogo {
-            0%, 100% { box-shadow: 0 0 20px rgba(155,48,255,0.40), 0 0 50px rgba(255,45,120,0.18), inset 0 0 20px rgba(155,48,255,0.10); }
-            50%       { box-shadow: 0 0 30px rgba(155,48,255,0.65), 0 0 70px rgba(255,45,120,0.30), inset 0 0 30px rgba(155,48,255,0.18); }
+            0%, 100% { box-shadow: 0 0 20px rgba(255,61,0,0.40), 0 0 50px rgba(255,107,26,0.15), inset 0 0 20px rgba(255,61,0,0.08); }
+            50%       { box-shadow: 0 0 35px rgba(255,61,0,0.65), 0 0 70px rgba(255,107,26,0.28), inset 0 0 30px rgba(255,61,0,0.15); }
         }
-
         .logo-wrap img {
             width: 100%; height: 100%;
             object-fit: cover;
             border-radius: 50%;
         }
         .logo-fallback {
-            font-size: 2.6rem;
+            font-size: 2.8rem;
             display: none;
-            filter: drop-shadow(0 0 12px rgba(155,48,255,0.8));
         }
 
         .brand-name {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 3.4rem;
-            letter-spacing: 0.18em;
-            background: linear-gradient(135deg, var(--cyan) 0%, var(--violet) 45%, var(--magenta) 100%);
+            font-family: 'Cinzel', serif;
+            font-size: 2.1rem;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 40%, var(--fire) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             line-height: 1;
-            margin-bottom: 0.4rem;
-            filter: drop-shadow(0 0 20px rgba(155,48,255,0.4));
+            margin-bottom: 0.5rem;
+            filter: drop-shadow(0 0 16px rgba(255,107,26,0.35));
         }
 
         .header-tagline {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 0.95rem;
-            font-weight: 300;
+            font-family: 'Playfair Display', serif;
+            font-size: 0.82rem;
+            font-weight: 400;
+            font-style: italic;
             color: var(--muted);
-            letter-spacing: 0.3em;
+            letter-spacing: 0.25em;
             text-transform: uppercase;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.6rem;
+            gap: 0.5rem;
         }
         .header-tagline::before,
         .header-tagline::after {
-            content: '◆';
-            font-size: 0.4rem;
-            color: var(--violet);
-            opacity: 0.7;
+            content: '—';
+            color: var(--fire);
+            opacity: 0.5;
         }
 
         /* ══ ALERTS ══ */
@@ -277,18 +260,18 @@
             animation: alertIn 0.3s ease both;
         }
         @keyframes alertIn {
-            from { opacity: 0; transform: translateY(-10px); }
+            from { opacity: 0; transform: translateY(-8px); }
             to   { opacity: 1; transform: none; }
         }
         .alert-success {
-            background: rgba(0,229,255,0.08);
-            color: var(--cyan);
-            border: 1px solid rgba(0,229,255,0.25);
+            background: rgba(255,179,71,0.08);
+            color: var(--gold);
+            border: 1px solid rgba(255,179,71,0.25);
         }
         .alert-error {
-            background: rgba(255,45,120,0.08);
-            color: #FF6B9D;
-            border: 1px solid rgba(255,45,120,0.30);
+            background: rgba(255,61,0,0.08);
+            color: #FF8060;
+            border: 1px solid rgba(255,61,0,0.30);
         }
 
         /* ══ FORM ══ */
@@ -297,7 +280,7 @@
         .form-group label {
             display: block;
             margin-bottom: 0.5rem;
-            font-size: 0.73rem;
+            font-size: 0.72rem;
             font-weight: 600;
             letter-spacing: 0.14em;
             text-transform: uppercase;
@@ -313,45 +296,43 @@
             transform: translateY(-50%);
             font-size: 1rem;
             z-index: 2;
-            filter: drop-shadow(0 0 6px rgba(155,48,255,0.5));
         }
 
         .form-group input {
             width: 100%;
             padding: 0.9rem 1rem 0.9rem 3rem;
-            border: 1.5px solid rgba(155,48,255,0.20);
+            border: 1.5px solid rgba(255,107,26,0.18);
             border-radius: 0.85rem;
             font-size: 0.95rem;
             font-family: 'Outfit', sans-serif;
             color: var(--text);
-            background: rgba(155,48,255,0.05);
+            background: rgba(255,61,0,0.04);
             transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
-            letter-spacing: 0.02em;
         }
-        .form-group input::placeholder { color: rgba(139,127,168,0.5); }
+        .form-group input::placeholder { color: rgba(156, 123, 90, 0.45); }
         .form-group input:focus {
             outline: none;
-            border-color: var(--violet);
-            background: rgba(155,48,255,0.10);
+            border-color: var(--fire);
+            background: rgba(255,61,0,0.07);
             box-shadow:
-                0 0  0 3px rgba(155,48,255,0.12),
-                0 0 20px rgba(155,48,255,0.15);
+                0 0  0 3px rgba(255,61,0,0.10),
+                0 0 18px rgba(255,107,26,0.12);
         }
         .form-group input:-webkit-autofill {
-            -webkit-box-shadow: 0 0 0 100px #110022 inset;
+            -webkit-box-shadow: 0 0 0 100px #1A0F07 inset;
             -webkit-text-fill-color: var(--text);
         }
 
-        /* ══ CTA BUTTON ══ */
+        /* ══ BOTÓN ══ */
         .btn-primary {
             width: 100%;
             padding: 1rem;
-            background: linear-gradient(135deg, var(--violet) 0%, var(--magenta) 100%);
+            background: linear-gradient(135deg, #C23500 0%, var(--fire) 50%, var(--gold) 100%);
             color: #fff;
             border: none;
             border-radius: 0.85rem;
-            font-size: 0.85rem;
-            font-family: 'Outfit', sans-serif;
+            font-size: 0.84rem;
+            font-family: 'Cinzel', serif;
             font-weight: 600;
             letter-spacing: 0.18em;
             text-transform: uppercase;
@@ -359,38 +340,27 @@
             position: relative;
             overflow: hidden;
             transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 6px 30px rgba(155,48,255,0.45), 0 0 60px rgba(255,45,120,0.12);
+            box-shadow: 0 6px 28px rgba(255,61,0,0.45), 0 0 50px rgba(255,107,26,0.12);
         }
-        .btn-primary::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-        /* scanline shimmer */
         .btn-primary::after {
             content: '';
             position: absolute;
             top: -50%; left: -60%;
             width: 40%; height: 200%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.20), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
             transform: skewX(-20deg);
-            animation: btnShimmer 3.5s ease-in-out infinite;
+            animation: shimmer 4s ease-in-out infinite;
         }
-        @keyframes btnShimmer {
+        @keyframes shimmer {
             0%, 100% { left: -60%; opacity: 0; }
             40%       { opacity: 1; }
             60%       { left: 130%; opacity: 0; }
         }
         .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 40px rgba(155,48,255,0.6), 0 0 80px rgba(255,45,120,0.20);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(255,61,0,0.55), 0 0 70px rgba(255,107,26,0.18);
         }
-        .btn-primary:hover::before { opacity: 1; }
         .btn-primary:active { transform: translateY(0); }
-
         .btn-text {
             position: relative;
             z-index: 1;
@@ -400,77 +370,77 @@
             gap: 0.5rem;
         }
 
-        /* ══ DIVIDER ══ */
+        /* ══ DIVISOR ══ */
         .divider {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            margin: 1.7rem 0 1.2rem;
-            color: rgba(139,127,168,0.5);
-            font-size: 0.72rem;
+            margin: 1.6rem 0 1.2rem;
+            color: rgba(156,123,90,0.45);
+            font-size: 0.7rem;
             letter-spacing: 0.12em;
             text-transform: uppercase;
-            font-family: 'Cormorant Garamond', serif;
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
         }
         .divider::before, .divider::after {
             content: '';
             flex: 1;
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(155,48,255,0.25), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255,107,26,0.20), transparent);
         }
 
-        /* ══ BADGE ROW ══ */
+        /* ══ BADGES ══ */
         .footer-badges {
             display: flex;
             justify-content: center;
-            gap: 0.55rem;
+            gap: 0.5rem;
             flex-wrap: wrap;
         }
         .badge {
             display: inline-flex;
             align-items: center;
             gap: 0.3rem;
-            padding: 0.32rem 0.75rem;
+            padding: 0.3rem 0.7rem;
             border-radius: 2rem;
-            font-size: 0.75rem;
+            font-size: 0.74rem;
             font-weight: 500;
             letter-spacing: 0.04em;
             border: 1px solid;
         }
-        .badge-violet { background: rgba(155,48,255,0.10); border-color: rgba(155,48,255,0.30); color: #C380FF; }
-        .badge-pink   { background: rgba(255,45,120,0.10); border-color: rgba(255,45,120,0.30); color: #FF7BAB; }
-        .badge-cyan   { background: rgba(0,229,255,0.08);  border-color: rgba(0,229,255,0.25);  color: #5EEEFF; }
-        .badge-gold   { background: rgba(255,209,102,0.08);border-color: rgba(255,209,102,0.25);color: #FFD166; }
+        .badge-fire   { background: rgba(255,61,0,0.10);  border-color: rgba(255,61,0,0.28);  color: #FF8060; }
+        .badge-gold   { background: rgba(255,179,71,0.10); border-color: rgba(255,179,71,0.28); color: #FFD580; }
+        .badge-smoke  { background: rgba(156,123,90,0.10); border-color: rgba(156,123,90,0.28); color: #C4A07A; }
+        .badge-meat   { background: rgba(180,60,20,0.10);  border-color: rgba(180,60,20,0.28);  color: #E07050; }
 
-        /* ══ BOTTOM STRIP ══ */
+        /* ══ FRANJA INFERIOR ══ */
         .bottom-strip {
-            margin-top: 1.6rem;
+            margin-top: 1.5rem;
             text-align: center;
-            padding: 0.75rem 1rem;
+            padding: 0.7rem 1rem;
             background: linear-gradient(90deg,
-                rgba(155,48,255,0.06),
-                rgba(255,45,120,0.06),
-                rgba(0,229,255,0.06),
-                rgba(155,48,255,0.06));
-            border-radius: 0.65rem;
-            font-size: 0.76rem;
-            color: rgba(139,127,168,0.7);
+                rgba(255,61,0,0.06),
+                rgba(255,107,26,0.08),
+                rgba(255,179,71,0.06),
+                rgba(255,61,0,0.06));
+            border-radius: 0.6rem;
+            font-size: 0.75rem;
+            color: rgba(156,123,90,0.65);
             letter-spacing: 0.06em;
-            font-family: 'Cormorant Garamond', serif;
+            font-family: 'Playfair Display', serif;
             font-style: italic;
         }
 
-        /* ══ RESPONSIVE ══ */
         @media (max-width: 480px) {
-            .login-card { padding: 2rem 1.5rem; }
-            .brand-name { font-size: 2.7rem; }
+            .login-card { padding: 2rem 1.4rem; }
+            .brand-name { font-size: 2.1rem; }
         }
     </style>
 </head>
 <body>
 
     <div class="bg-layer"></div>
-    <div class="grid-lines"></div>
+    <div class="grill-lines"></div>
 
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
@@ -478,9 +448,8 @@
 
     <div class="ring ring-a"></div>
     <div class="ring ring-b"></div>
-    <div class="ring ring-c"></div>
 
-    <div class="drink-canvas" id="drinkCanvas"></div>
+    <div class="particle-canvas" id="particleCanvas"></div>
 
     <div class="login-container">
         <div class="login-card">
@@ -491,10 +460,10 @@
                     <img src="{{ url_for('static', filename='logo.jpeg') }}"
                          alt="Euphoria"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
-                    <span class="logo-fallback">🍹</span>
+                    <span class="logo-fallback">🔥</span>
                 </div>
-                <h1 class="brand-name">EUPHORIA</h1>
-                <p class="header-tagline">Cócteles &amp; Granizados</p>
+                <h1 class="brand-name">LA PARRILLA</h1>
+                <p class="header-tagline">Restaurante</p>
             </div>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -525,44 +494,44 @@
                 </div>
 
                 <button type="submit" class="btn-primary">
-                    <span class="btn-text">✦ Iniciar Sesión</span>
+                    <span class="btn-text">🔥 Ingresar</span>
                 </button>
             </form>
 
-            <div class="divider">Euphoria · Bar & Granizados</div>
+            <div class="divider">La Parrilla Restaurante</div>
 
             <div class="footer-badges">
-                <span class="badge badge-violet">🍸 Cócteles</span>
-                <span class="badge badge-cyan">🧊 Granizados</span>
-                <span class="badge badge-pink">🎶 Ambiente</span>
-                <span class="badge badge-gold">✨ Premium</span>
+                <span class="badge badge-fire">🔥 Parrilla</span>
+                <span class="badge badge-meat">🥩 Carnes</span>
+                <span class="badge badge-smoke">💨 Brasa</span>
+                <span class="badge badge-gold">⭐ Premium</span>
             </div>
 
             <div class="bottom-strip">
-                Donde cada trago cuenta una historia
+                El arte del fuego en cada plato
             </div>
         </div>
     </div>
 
     <script>
-        const drinks = [
-            '🍹','🍸','🍦','🧊','🍧','🥃','🫧','🍒',
-            '🌊','💜','🫐','🍇','✨','🫧','🍬','🌙',
-            '🍹','💫','🧋','🫗','🍭','⭐','🍸','🌺'
+        const items = [
+            '🔥','🔥','🔥','💨','🌡️','🥩','🍖','🍗',
+            '✨','🔥','💨','🫕','🔥','🌿','🧄','🌶️',
+            '🔥','💨','🥩','⭐','🔥','🍖','💨','🌡️'
         ];
 
-        const canvas = document.getElementById('drinkCanvas');
+        const canvas = document.getElementById('particleCanvas');
 
-        for (let i = 0; i < 26; i++) {
-            const el   = document.createElement('div');
-            el.className = 'drink-item';
+        for (let i = 0; i < 28; i++) {
+            const el = document.createElement('div');
+            el.className = 'particle';
 
-            const dur  = 10 + Math.random() * 14;
-            const r0   = (Math.random() * 60 - 30) + 'deg';
-            const r1   = (Math.random() * 180 - 90) + 'deg';
-            const size = 1.2 + Math.random() * 1.0;
+            const dur   = 8 + Math.random() * 12;
+            const r0    = (Math.random() * 30 - 15) + 'deg';
+            const r1    = (Math.random() * 60 - 30) + 'deg';
+            const size  = 0.9 + Math.random() * 0.9;
 
-            el.textContent = drinks[Math.floor(Math.random() * drinks.length)];
+            el.textContent = items[Math.floor(Math.random() * items.length)];
             el.style.cssText = `
                 left: ${Math.random() * 100}%;
                 font-size: ${size}rem;
