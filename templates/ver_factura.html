@@ -1,485 +1,1021 @@
-    {% if current_user.is_authenticated %}
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-menu" id="navMenu">
-                {% if current_user.rol != 'cocina' %}
-                <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
-                {% else %}
-                {% endif %}
-            </div>
-        </div>
-    </nav>
-    {% endif %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factura {{ factura.numero_consecutivo }} — {{ config.nombre }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ══ RESET & BASE ══ */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-{% block title %}Factura {{ factura.numero_consecutivo }}{% endblock %}
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #F0EDE8;
+            min-height: 100vh;
+            color: #1A1208;
+        }
 
-{% block content %}
-<div class="container mt-4">
-    <!-- VISTA PREVIA EN PANTALLA -->
-    <div class="d-print-none mb-3">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <a href="{{ url_for('lista_facturas') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Volver
-                </a>
-                {% if factura.sesion %}
-                <a href="{{ url_for('ver_mesa', mesa_id=factura.sesion.mesa_id) }}" class="btn btn-primary">
-                    <i class="fas fa-eye"></i> Ver Mesa
-                </a>
-                {% else %}
-                    {% set domicilio = factura.domicilios.first() if factura.domicilios else None %}
-                    {% if domicilio %}
-                    <a href="{{ url_for('ver_domicilio', domicilio_id=domicilio.id) }}" class="btn btn-primary">
-                        <i class="fas fa-motorcycle"></i> Ver Domicilio
-                    </a>
-                    {% endif %}
-                {% endif %}
-            </div>
-            <div>
-                {% if current_user.rol == 'admin' %}
-                <a href="{{ url_for('editar_factura', factura_id=factura.id) }}" class="btn btn-warning">
-                    <i class="fas fa-edit"></i> Editar
-                </a>
-                {% endif %}
-                <button onclick="window.print()" class="btn btn-success">
-                    <i class="fas fa-print"></i> Imprimir Factura
-                </button>
-                {% if factura.es_electronica and factura.xml_content %}
-                <a href="{{ url_for('descargar_xml_factura', factura_id=factura.id) }}" class="btn btn-primary">
-                    <i class="fas fa-file-code"></i> Descargar XML
-                </a>
-                {% endif %}
-                {% if current_user.rol == 'admin' %}
-                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalEliminarFactura">
-                    <i class="fas fa-trash"></i> Eliminar
-                </button>
-                {% endif %}
-            </div>
-        </div>
-    </div>
+        /* ══ NAVBAR ══ */
+        .topbar {
+            background: #1A1208;
+            padding: 0 2rem;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+        }
+        .topbar-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            color: #FFB347;
+            letter-spacing: 0.05em;
+            text-decoration: none;
+        }
+        .topbar-actions { display: flex; gap: 0.5rem; align-items: center; }
 
-    <!-- FACTURA TÉRMICA (80mm) -->
-    <div class="factura-termica">
-        <!-- ENCABEZADO -->
-        <div class="text-center mb-2">
-            <h3 class="mb-1">{{ config.nombre }}</h3>
-            <p class="mb-0 small">NIT: {{ config.nit }}</p>
-            <p class="mb-0 small">{{ config.direccion }}</p>
-            <p class="mb-0 small">{{ config.ciudad }}</p>
-            <p class="mb-0 small">Tel: {{ config.telefono }}</p>
-            {% if config.email %}
-            <p class="mb-0 small">{{ config.email }}</p>
-            {% endif %}
-            <p class="mb-0 small">{{ config.regimen }}</p>
-            {% if config.resolucion_dian %}
-            <p class="mb-0 small">{{ config.resolucion_dian }}</p>
-            {% endif %}
-            {% if config.rango_facturacion %}
-            <p class="mb-0 small">{{ config.rango_facturacion }}</p>
-            {% endif %}
-        </div>
+        /* ══ BOTONES TOPBAR ══ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            text-decoration: none;
+            border: none;
+            transition: all 0.18s;
+            letter-spacing: 0.01em;
+        }
+        .btn-ghost   { background: rgba(255,255,255,0.08); color: #D4C8B8; border: 1px solid rgba(255,255,255,0.12); }
+        .btn-ghost:hover { background: rgba(255,255,255,0.15); color: #fff; }
+        .btn-amber   { background: #D97706; color: #fff; }
+        .btn-amber:hover { background: #B45309; }
+        .btn-green   { background: #16A34A; color: #fff; }
+        .btn-green:hover { background: #15803D; }
+        .btn-blue    { background: #2563EB; color: #fff; }
+        .btn-blue:hover { background: #1D4ED8; }
+        .btn-red     { background: #DC2626; color: #fff; }
+        .btn-red:hover { background: #B91C1C; }
+        .btn i { font-size: 0.8rem; }
 
-        <div class="separador"></div>
+        /* ══ LAYOUT PRINCIPAL ══ */
+        .page-wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 1.5rem;
+            align-items: start;
+        }
 
-        <!-- INFORMACIÓN DE FACTURA -->
-        <div class="text-center mb-2">
-            <h4 class="mb-1">FACTURA DE VENTA</h4>
-            <p class="mb-0"><strong>No. {{ factura.numero_consecutivo }}</strong></p>
-            <p class="mb-0 small">{{ factura.fecha_emision.strftime('%d/%m/%Y %I:%M %p') }}</p>
-            {% if factura.sesion %}
-            <p class="mb-0 small">Mesa: {{ factura.sesion.mesa.numero }}</p>
-            {% else %}
-            <p class="mb-0 small">DOMICILIO</p>
-            {% endif %}
-        </div>
+        /* ══ CARD PRINCIPAL ══ */
+        .invoice-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+            overflow: hidden;
+        }
 
-        <div class="separador"></div>
+        /* Header de la factura */
+        .invoice-header {
+            background: linear-gradient(135deg, #1A1208 0%, #2D1F0A 100%);
+            padding: 2rem 2.4rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        .invoice-header-left h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            color: #FFB347;
+            margin-bottom: 0.2rem;
+        }
+        .invoice-header-left p { color: #9C7B5A; font-size: 0.8rem; line-height: 1.6; }
+        .invoice-header-right { text-align: right; }
+        .invoice-number {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.04em;
+        }
+        .invoice-date { color: #9C7B5A; font-size: 0.78rem; margin-top: 0.3rem; }
 
-        <!-- CLIENTE -->
-        {% if factura.cliente_nombre or factura.cliente_documento %}
-        <div class="mb-2">
-            <p class="mb-0 small"><strong>CLIENTE:</strong></p>
-            {% if factura.cliente_nombre %}
-            <p class="mb-0 small">{{ factura.cliente_nombre }}</p>
-            {% endif %}
-            {% if factura.cliente_documento %}
-            <p class="mb-0 small">CC/NIT: {{ factura.cliente_documento }}</p>
-            {% endif %}
-        </div>
-        <div class="separador"></div>
+        /* Banda de estado */
+        .status-band {
+            padding: 0.65rem 2.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+        .status-band.pagada    { background: #DCFCE7; color: #15803D; border-bottom: 1px solid #BBF7D0; }
+        .status-band.pendiente { background: #FEF3C7; color: #92400E; border-bottom: 1px solid #FDE68A; }
+        .status-band.vencida   { background: #FEE2E2; color: #991B1B; border-bottom: 1px solid #FECACA; }
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .pagada    .status-dot { background: #16A34A; }
+        .pendiente .status-dot { background: #D97706; }
+        .vencida   .status-dot { background: #DC2626; }
+
+        /* Cuerpo de la factura */
+        .invoice-body { padding: 2rem 2.4rem; }
+
+        /* Info doble columna */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid #F0EDE8;
+        }
+        .info-block label {
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #9C7B5A;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+        .info-block p {
+            font-size: 0.88rem;
+            color: #1A1208;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+        .info-block p.dim { color: #6B5A44; font-weight: 400; font-size: 0.82rem; }
+
+        /* Tipo de factura badge */
+        .tipo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+        .tipo-mesa     { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+        .tipo-domicilio{ background: #FFF7ED; color: #C2410C; border: 1px solid #FED7AA; }
+        .tipo-fe       { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
+
+        /* ══ TABLA DE PRODUCTOS ══ */
+        .section-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #9C7B5A;
+            margin-bottom: 0.75rem;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+        .items-table thead tr {
+            border-bottom: 2px solid #F0EDE8;
+        }
+        .items-table th {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #9C7B5A;
+            text-align: left;
+        }
+        .items-table th.r { text-align: right; }
+        .items-table tbody tr {
+            border-bottom: 1px solid #F7F4F0;
+            transition: background 0.12s;
+        }
+        .items-table tbody tr:hover { background: #FAFAF8; }
+        .items-table td {
+            padding: 0.75rem;
+            font-size: 0.88rem;
+            color: #1A1208;
+            vertical-align: top;
+        }
+        .items-table td.r { text-align: right; font-weight: 500; }
+        .items-table td.c { text-align: center; }
+        .items-table .nota-row td {
+            padding: 0 0.75rem 0.5rem 1.75rem;
+            font-size: 0.78rem;
+            color: #9C7B5A;
+            font-style: italic;
+            border-bottom: none;
+        }
+        .item-name { font-weight: 500; }
+
+        /* ══ TOTALES ══ */
+        .totales-wrap {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 1.5rem;
+        }
+        .totales-box {
+            width: 280px;
+            background: #FAFAF8;
+            border-radius: 12px;
+            padding: 1.2rem 1.4rem;
+            border: 1px solid #F0EDE8;
+        }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.35rem 0;
+            font-size: 0.85rem;
+            color: #6B5A44;
+        }
+        .total-row span:last-child { font-weight: 500; color: #1A1208; }
+        .total-row.grand {
+            margin-top: 0.6rem;
+            padding-top: 0.8rem;
+            border-top: 2px solid #E8E0D5;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1A1208;
+        }
+        .total-row.grand span:last-child { color: #D97706; font-size: 1.2rem; }
+
+        /* ══ PAGO Y NOTAS ══ */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #F0EDE8;
+        }
+        .pago-box, .notas-box {
+            background: #FAFAF8;
+            border-radius: 10px;
+            padding: 1rem 1.2rem;
+            border: 1px solid #F0EDE8;
+        }
+        .pago-box h4, .notas-box h4 {
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #9C7B5A;
+            margin-bottom: 0.6rem;
+        }
+        .pago-method {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.75rem;
+            background: #1A1208;
+            color: #FFB347;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.5rem;
+        }
+        .pago-desglose { font-size: 0.8rem; color: #6B5A44; line-height: 1.8; }
+        .credito-info {
+            margin-top: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: #FEF3C7;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            color: #92400E;
+            font-weight: 500;
+        }
+        .notas-box p { font-size: 0.85rem; color: #6B5A44; line-height: 1.6; }
+
+        /* ══ SECCIÓN FE DIAN ══ */
+        .fe-section {
+            margin-top: 1.5rem;
+            padding: 1.4rem 1.6rem;
+            background: linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%);
+            border: 1px solid #BBF7D0;
+            border-radius: 12px;
+        }
+        .fe-section h4 {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #15803D;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .fe-grid { display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: center; }
+        .cufe-label { font-size: 0.68rem; font-weight: 600; color: #15803D; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.3rem; }
+        .cufe-value {
+            font-family: 'Courier New', monospace;
+            font-size: 0.72rem;
+            color: #166534;
+            word-break: break-all;
+            background: rgba(22,163,74,0.06);
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            border: 1px solid rgba(22,163,74,0.15);
+            line-height: 1.5;
+        }
+        .fe-qr img {
+            width: 90px; height: 90px;
+            border-radius: 8px;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+        .fe-qr p { font-size: 0.68rem; color: #15803D; text-align: center; margin-top: 0.3rem; font-weight: 500; }
+
+        /* ══ PANEL LATERAL ══ */
+        .side-panel { display: flex; flex-direction: column; gap: 1rem; }
+
+        .side-card {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+        .side-card-header {
+            padding: 0.9rem 1.2rem;
+            background: #1A1208;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #FFB347;
+        }
+        .side-card-body { padding: 1rem 1.2rem; }
+
+        /* Botones de acción */
+        .action-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.15s;
+            width: 100%;
+            text-align: left;
+        }
+        .action-btn .icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        .action-btn .label { font-weight: 500; }
+        .action-btn .sub   { font-size: 0.72rem; opacity: 0.65; display: block; }
+
+        .ab-print  { background: #F0FDF4; color: #15803D; }
+        .ab-print:hover  { background: #DCFCE7; }
+        .ab-print  .icon { background: #16A34A; color: #fff; }
+
+        .ab-xml    { background: #EFF6FF; color: #1D4ED8; }
+        .ab-xml:hover    { background: #DBEAFE; }
+        .ab-xml    .icon { background: #2563EB; color: #fff; }
+
+        .ab-edit   { background: #FFFBEB; color: #92400E; }
+        .ab-edit:hover   { background: #FEF3C7; }
+        .ab-edit   .icon { background: #D97706; color: #fff; }
+
+        .ab-back   { background: #F8F7F5; color: #6B5A44; }
+        .ab-back:hover   { background: #F0EDE8; }
+        .ab-back   .icon { background: #9C7B5A; color: #fff; }
+
+        .ab-delete { background: #FEF2F2; color: #991B1B; }
+        .ab-delete:hover { background: #FEE2E2; }
+        .ab-delete .icon { background: #DC2626; color: #fff; }
+
+        /* Resumen rápido */
+        .summary-list { list-style: none; }
+        .summary-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #F0EDE8;
+            font-size: 0.82rem;
+        }
+        .summary-list li:last-child { border-bottom: none; }
+        .summary-list .key { color: #9C7B5A; }
+        .summary-list .val { font-weight: 600; color: #1A1208; }
+        .summary-list .val.green { color: #16A34A; }
+        .summary-list .val.orange { color: #D97706; }
+        .summary-list .val.red { color: #DC2626; }
+
+        /* ══ MODAL ELIMINAR ══ */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(3px);
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: #fff;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 460px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalIn 0.2s ease both;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.96) translateY(12px); }
+            to   { opacity: 1; transform: none; }
+        }
+        .modal-top {
+            background: #DC2626;
+            padding: 1.2rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #fff;
+        }
+        .modal-top h3 { font-size: 1rem; font-weight: 600; }
+        .modal-top i  { font-size: 1.1rem; }
+        .modal-body { padding: 1.5rem; }
+        .modal-body p { font-size: 0.88rem; color: #374151; margin-bottom: 0.5rem; line-height: 1.6; }
+        .modal-info {
+            background: #FEF2F2;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin: 1rem 0;
+            border: 1px solid #FECACA;
+        }
+        .modal-info p { margin: 0; color: #991B1B; font-size: 0.82rem; }
+        .modal-info p + p { margin-top: 0.3rem; }
+        .modal-footer-btns {
+            padding: 1rem 1.5rem;
+            background: #F9FAFB;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            border-top: 1px solid #F3F4F6;
+        }
+
+        /* ══ VERSIÓN IMPRESIÓN (TÉRMICA) ══ */
+        .print-version { display: none; }
+
+        @media print {
+            .screen-version { display: none !important; }
+            .print-version  { display: block !important; }
+
+            body { background: #fff; }
+
+            .factura-termica {
+                width: 80mm;
+                margin: 0 auto;
+                font-family: 'Courier New', monospace;
+                font-size: 11px;
+                color: #000;
+            }
+            .sep  { border-top: 1px dashed #000; margin: 6px 0; }
+            .sep2 { border-top: 2px solid #000;  margin: 6px 0; }
+            .tc   { text-align: center; }
+            .tr   { text-align: right; }
+            .tl   { text-align: left; }
+            .t-items { width: 100%; border-collapse: collapse; font-size: 10px; }
+            .t-items th { border-bottom: 1px solid #000; padding: 2px; }
+            .t-items td { padding: 3px 2px; vertical-align: top; }
+            .t-tots  { width: 100%; font-size: 11px; }
+            .t-tots td { padding: 2px; }
+            .t-gran  { font-size: 13px; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000; }
+            .corte   { height: 20mm; }
+        }
+
+        /* ══ RESPONSIVE ══ */
+        @media (max-width: 860px) {
+            .page-wrap { grid-template-columns: 1fr; }
+            .side-panel { order: -1; flex-direction: row; flex-wrap: wrap; }
+            .side-card  { flex: 1 1 240px; }
+        }
+        @media (max-width: 600px) {
+            .invoice-header { flex-direction: column; }
+            .invoice-header-right { text-align: left; }
+            .info-grid   { grid-template-columns: 1fr; }
+            .bottom-grid { grid-template-columns: 1fr; }
+            .fe-grid     { grid-template-columns: 1fr; }
+            .page-wrap   { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ══ TOPBAR ══ -->
+<nav class="topbar screen-version">
+    <a href="{{ url_for('lista_facturas') }}" class="topbar-brand">
+        🔥 {{ config.nombre }}
+    </a>
+    <div class="topbar-actions">
+        <a href="{{ url_for('lista_facturas') }}" class="btn btn-ghost">
+            <i class="fa fa-arrow-left"></i> Facturas
+        </a>
+        <button onclick="window.print()" class="btn btn-green">
+            <i class="fa fa-print"></i> Imprimir
+        </button>
+        {% if factura.es_electronica and factura.xml_content %}
+        <a href="{{ url_for('descargar_xml_factura', factura_id=factura.id) }}" class="btn btn-blue">
+            <i class="fa fa-file-code"></i> XML DIAN
+        </a>
         {% endif %}
+        {% if current_user.rol == 'admin' %}
+        <a href="{{ url_for('editar_factura', factura_id=factura.id) }}" class="btn btn-amber">
+            <i class="fa fa-pen"></i> Editar
+        </a>
+        <button onclick="abrirModal()" class="btn btn-red">
+            <i class="fa fa-trash"></i> Eliminar
+        </button>
+        {% endif %}
+    </div>
+</nav>
 
-        <!-- PRODUCTOS -->
-        <div class="mb-2">
-            <table class="tabla-items">
+<!-- ══ VISTA PANTALLA ══ -->
+<div class="screen-version">
+<div class="page-wrap">
+
+    <!-- COLUMNA IZQUIERDA: FACTURA -->
+    <div class="invoice-card">
+
+        <!-- Header oscuro -->
+        <div class="invoice-header">
+            <div class="invoice-header-left">
+                <h2>{{ config.nombre }}</h2>
+                <p>NIT: {{ config.nit }}</p>
+                <p>{{ config.direccion }}</p>
+                <p>{{ config.ciudad }}</p>
+                {% if config.telefono %}<p>Tel: {{ config.telefono }}</p>{% endif %}
+                {% if config.email %}<p>{{ config.email }}</p>{% endif %}
+                <p>{{ config.regimen }}</p>
+                {% if config.resolucion_dian %}<p style="margin-top:4px;font-size:0.72rem;">{{ config.resolucion_dian }}</p>{% endif %}
+            </div>
+            <div class="invoice-header-right">
+                <div style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#9C7B5A;margin-bottom:4px;">
+                    {% if factura.es_electronica %}Factura Electrónica{% else %}Factura de Venta{% endif %}
+                </div>
+                <div class="invoice-number">{{ factura.numero_consecutivo }}</div>
+                <div class="invoice-date">
+                    {{ factura.fecha_emision.strftime('%d de %B de %Y, %I:%M %p') }}
+                </div>
+                <div style="margin-top:8px;display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">
+                    {% if factura.sesion %}
+                    <span class="tipo-badge tipo-mesa"><i class="fa fa-utensils"></i> Mesa {{ factura.sesion.mesa.numero }}</span>
+                    {% else %}
+                    <span class="tipo-badge tipo-domicilio"><i class="fa fa-motorcycle"></i> Domicilio</span>
+                    {% endif %}
+                    {% if factura.es_electronica %}
+                    <span class="tipo-badge tipo-fe"><i class="fa fa-certificate"></i> FE·DIAN</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Banda de estado -->
+        <div class="status-band {{ factura.estado_pago or 'pagada' }}">
+            <div class="status-dot"></div>
+            {% if factura.estado_pago == 'pendiente' %}
+                CRÉDITO — PAGO PENDIENTE
+                {% if factura.fecha_vencimiento %}
+                  · Vence el {{ factura.fecha_vencimiento.strftime('%d/%m/%Y') }}
+                {% endif %}
+            {% elif factura.estado_pago == 'vencida' %}
+                VENCIDA — PAGO NO RECIBIDO
+            {% else %}
+                PAGADA
+                {% if factura.fecha_pago_real %}· {{ factura.fecha_pago_real.strftime('%d/%m/%Y %I:%M %p') }}{% endif %}
+            {% endif %}
+        </div>
+
+        <!-- Cuerpo -->
+        <div class="invoice-body">
+
+            <!-- Info cliente / tipo -->
+            <div class="info-grid">
+                <div class="info-block">
+                    <label>Cliente</label>
+                    {% if factura.cliente_nombre %}
+                    <p>{{ factura.cliente_nombre }}</p>
+                    {% else %}
+                    <p class="dim">Consumidor Final</p>
+                    {% endif %}
+                    {% if factura.cliente_documento %}
+                    <p class="dim">
+                        {{ factura.cliente_tipo_documento or 'Doc' }}: {{ factura.cliente_documento }}
+                    </p>
+                    {% endif %}
+                    {% if factura.cliente_email %}
+                    <p class="dim">{{ factura.cliente_email }}</p>
+                    {% endif %}
+                </div>
+                <div class="info-block">
+                    <label>Detalle</label>
+                    {% if factura.sesion %}
+                    <p>Mesa {{ factura.sesion.mesa.numero }}</p>
+                    <p class="dim">Servicio en mesa</p>
+                    {% else %}
+                    {% set domicilio = factura.domicilios.first() if factura.domicilios else None %}
+                    <p>Domicilio{% if domicilio and domicilio.cliente_telefono %} — {{ domicilio.cliente_telefono }}{% endif %}</p>
+                    {% if domicilio and domicilio.direccion_entrega %}
+                    <p class="dim">{{ domicilio.direccion_entrega }}</p>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Tabla de items -->
+            <p class="section-title">Productos / Servicios</p>
+            <table class="items-table">
                 <thead>
                     <tr>
-                        <th class="text-left">ITEM</th>
-                        <th class="text-center">CANT</th>
-                        <th class="text-right">VALOR</th>
+                        <th>Descripción</th>
+                        <th class="c" style="width:70px;">Cant.</th>
+                        <th class="r" style="width:110px;">P. Unit.</th>
+                        <th class="r" style="width:120px;">Subtotal</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% if factura.sesion %}
-                        <!-- PRODUCTOS DE MESA -->
                         {% for pedido in factura.sesion.pedidos %}
                         <tr>
-                            <td class="text-left">{{ pedido.producto }}</td>
-                            <td class="text-center">{{ pedido.cantidad }}</td>
-                            <td class="text-right">${{ "{:,.0f}".format(pedido.total) }}</td>
+                            <td><span class="item-name">{{ pedido.producto }}</span></td>
+                            <td class="c">{{ pedido.cantidad }}</td>
+                            <td class="r">${{ "{:,.0f}".format(pedido.precio_unitario) }}</td>
+                            <td class="r">${{ "{:,.0f}".format(pedido.total) }}</td>
                         </tr>
                         {% if pedido.notas %}
-                        <tr>
-                            <td colspan="3" class="small text-muted">  * {{ pedido.notas }}</td>
+                        <tr class="nota-row">
+                            <td colspan="4"><i class="fa fa-comment-dots" style="margin-right:4px;"></i>{{ pedido.notas }}</td>
                         </tr>
                         {% endif %}
                         {% endfor %}
                     {% else %}
-                        <!-- PRODUCTOS DE DOMICILIO -->
                         {% set domicilio = factura.domicilios.first() if factura.domicilios else None %}
                         {% if domicilio %}
                             {% for item in domicilio.items %}
                             <tr>
-                                <td class="text-left">{{ item.producto_nombre }}</td>
-                                <td class="text-center">{{ item.cantidad }}</td>
-                                <td class="text-right">${{ "{:,.0f}".format(item.subtotal) }}</td>
+                                <td><span class="item-name">{{ item.producto_nombre }}</span></td>
+                                <td class="c">{{ item.cantidad }}</td>
+                                <td class="r">${{ "{:,.0f}".format(item.precio_unitario) }}</td>
+                                <td class="r">${{ "{:,.0f}".format(item.subtotal) }}</td>
                             </tr>
                             {% if item.notas %}
-                            <tr>
-                                <td colspan="3" class="small text-muted">  * {{ item.notas }}</td>
+                            <tr class="nota-row">
+                                <td colspan="4"><i class="fa fa-comment-dots" style="margin-right:4px;"></i>{{ item.notas }}</td>
                             </tr>
                             {% endif %}
                             {% endfor %}
-                            <!-- Costo de Domicilio -->
+                            {% if domicilio.costo_domicilio %}
                             <tr>
-                                <td class="text-left">Domicilio</td>
-                                <td class="text-center">1</td>
-                                <td class="text-right">${{ "{:,.0f}".format(domicilio.costo_domicilio) }}</td>
+                                <td><span class="item-name">Costo de domicilio</span></td>
+                                <td class="c">1</td>
+                                <td class="r">${{ "{:,.0f}".format(domicilio.costo_domicilio) }}</td>
+                                <td class="r">${{ "{:,.0f}".format(domicilio.costo_domicilio) }}</td>
                             </tr>
+                            {% endif %}
                         {% endif %}
                     {% endif %}
                 </tbody>
             </table>
-        </div>
 
-        <div class="separador"></div>
+            <!-- Totales -->
+            <div class="totales-wrap">
+                <div class="totales-box">
+                    <div class="total-row">
+                        <span>Subtotal</span>
+                        <span>${{ "{:,.0f}".format(factura.subtotal) }}</span>
+                    </div>
+                    {% if factura.iva and factura.iva > 0 %}
+                    <div class="total-row">
+                        <span>IVA ({{ config.iva_porcentaje }}%)</span>
+                        <span>${{ "{:,.0f}".format(factura.iva) }}</span>
+                    </div>
+                    {% endif %}
+                    {% if factura.propina and factura.propina > 0 %}
+                    <div class="total-row">
+                        <span>Propina</span>
+                        <span>${{ "{:,.0f}".format(factura.propina) }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="total-row grand">
+                        <span>Total</span>
+                        <span>${{ "{:,.0f}".format(factura.total) }}</span>
+                    </div>
+                </div>
+            </div>
 
-        <!-- TOTALES -->
-        <div class="mb-2">
-            <table class="tabla-totales">
-                <tr>
-                    <td class="text-right"><strong>SUBTOTAL:</strong></td>
-                    <td class="text-right"><strong>${{ "{:,.0f}".format(factura.subtotal) }}</strong></td>
-                </tr>
-                {% if factura.iva > 0 %}
-                <tr>
-                    <td class="text-right">IVA ({{ config.iva_porcentaje }}%):</td>
-                    <td class="text-right">${{ "{:,.0f}".format(factura.iva) }}</td>
-                </tr>
-                {% endif %}
-                {% if factura.propina > 0 %}
-                <tr>
-                    <td class="text-right">Propina:</td>
-                    <td class="text-right">${{ "{:,.0f}".format(factura.propina) }}</td>
-                </tr>
-                {% endif %}
-                <tr class="total-final">
-                    <td class="text-right"><strong>TOTAL:</strong></td>
-                    <td class="text-right"><strong>${{ "{:,.0f}".format(factura.total) }}</strong></td>
-                </tr>
-            </table>
-        </div>
+            <!-- Pago y notas -->
+            <div class="bottom-grid">
+                <div class="pago-box">
+                    <h4><i class="fa fa-credit-card" style="margin-right:4px;"></i>Método de pago</h4>
+                    <div class="pago-method">
+                        {% if factura.metodo_pago == 'efectivo' %}💵{% elif factura.metodo_pago == 'tarjeta' %}💳{% elif factura.metodo_pago == 'transferencia' %}📱{% else %}🔀{% endif %}
+                        {{ (factura.metodo_pago or 'efectivo')|capitalize }}
+                    </div>
+                    {% if desglose %}
+                    <div class="pago-desglose">
+                        {% if desglose.efectivo %}<div>Efectivo: ${{ "{:,.0f}".format(desglose.efectivo) }}</div>{% endif %}
+                        {% if desglose.tarjeta %}<div>Tarjeta: ${{ "{:,.0f}".format(desglose.tarjeta) }}</div>{% endif %}
+                        {% if desglose.transferencia %}<div>Transferencia: ${{ "{:,.0f}".format(desglose.transferencia) }}</div>{% endif %}
+                    </div>
+                    {% endif %}
+                    {% if factura.estado_pago == 'pendiente' %}
+                    <div class="credito-info">
+                        ⚠️ Pendiente de pago
+                        {% if factura.saldo_pendiente %} · Saldo: ${{ "{:,.0f}".format(factura.saldo_pendiente) }}{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="notas-box">
+                    <h4><i class="fa fa-note-sticky" style="margin-right:4px;"></i>Notas</h4>
+                    {% if factura.notas %}
+                    <p>{{ factura.notas }}</p>
+                    {% else %}
+                    <p style="color:#C4B09A;font-style:italic;">Sin observaciones</p>
+                    {% endif %}
+                </div>
+            </div>
 
-        <div class="separador"></div>
-
-        <!-- MÉTODO DE PAGO -->
-        <div class="mb-2">
-            <p class="mb-0 small"><strong>MÉTODO DE PAGO:</strong> {{ factura.metodo_pago|upper }}</p>
-            
-            {% if desglose %}
-            {% if desglose.efectivo %}
-            <p class="mb-0 small">Efectivo: ${{ "{:,.0f}".format(desglose.efectivo) }}</p>
-            {% endif %}
-            {% if desglose.tarjeta %}
-            <p class="mb-0 small">Tarjeta: ${{ "{:,.0f}".format(desglose.tarjeta) }}</p>
-            {% endif %}
-            {% if desglose.transferencia %}
-            <p class="mb-0 small">Transferencia: ${{ "{:,.0f}".format(desglose.transferencia) }}</p>
-            {% endif %}
-            {% endif %}
-
-            {% if factura.estado_pago == 'pendiente' %}
-            <p class="mb-0 small text-danger"><strong>CRÉDITO - PENDIENTE DE PAGO</strong></p>
-            {% if factura.fecha_vencimiento %}
-            <p class="mb-0 small">Vence: {{ factura.fecha_vencimiento.strftime('%d/%m/%Y') }}</p>
-            {% endif %}
-            {% elif factura.estado_pago == 'pagada' %}
-            <p class="mb-0 small"><strong>PAGADO</strong></p>
-            {% endif %}
-        </div>
-
-        {% if factura.notas %}
-        <div class="separador"></div>
-        <div class="mb-2">
-            <p class="mb-0 small"><strong>NOTAS:</strong></p>
-            <p class="mb-0 small">{{ factura.notas }}</p>
-        </div>
-        {% endif %}
-
-        {% if factura.es_electronica and factura.cufe %}
-        <div class="separador"></div>
-
-        <!-- FACTURA ELECTRÓNICA DIAN -->
-        <div class="mb-2">
-            <p class="mb-0 small text-center"><strong>FACTURA ELECTRÓNICA DE VENTA</strong></p>
-            <p class="mb-0 small" style="word-break:break-all;font-size:9px;">
-                <strong>CUFE:</strong> {{ factura.cufe }}
-            </p>
-            {% if factura.qr_base64 %}
-            <div class="text-center mt-1">
-                <img src="data:image/png;base64,{{ factura.qr_base64 }}"
-                     alt="QR DIAN" style="width:80px;height:80px;">
-                <p class="mb-0" style="font-size:8px;">Verifique en DIAN</p>
+            <!-- Sección Factura Electrónica -->
+            {% if factura.es_electronica and factura.cufe %}
+            <div class="fe-section">
+                <h4><i class="fa fa-certificate"></i> Factura Electrónica · DIAN Colombia</h4>
+                <div class="fe-grid">
+                    <div>
+                        <div class="cufe-label">CUFE — Código Único de Factura Electrónica</div>
+                        <div class="cufe-value">{{ factura.cufe }}</div>
+                        <div style="margin-top:0.6rem;font-size:0.75rem;color:#15803D;">
+                            <i class="fa fa-circle-info" style="margin-right:4px;"></i>
+                            Consulte la validez de esta factura en el portal de la DIAN usando el código CUFE.
+                        </div>
+                    </div>
+                    {% if factura.qr_base64 %}
+                    <div class="fe-qr">
+                        <img src="data:image/png;base64,{{ factura.qr_base64 }}" alt="QR DIAN">
+                        <p>Verificar en DIAN</p>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
             {% endif %}
+
+        </div><!-- /invoice-body -->
+    </div><!-- /invoice-card -->
+
+    <!-- COLUMNA DERECHA: PANEL LATERAL -->
+    <div class="side-panel">
+
+        <!-- Acciones -->
+        <div class="side-card">
+            <div class="side-card-header">Acciones</div>
+            <div class="side-card-body">
+                <div class="action-list">
+                    <button onclick="window.print()" class="action-btn ab-print">
+                        <div class="icon"><i class="fa fa-print"></i></div>
+                        <div><span class="label">Imprimir</span><span class="sub">Ticket térmico 80mm</span></div>
+                    </button>
+                    {% if factura.es_electronica and factura.xml_content %}
+                    <a href="{{ url_for('descargar_xml_factura', factura_id=factura.id) }}" class="action-btn ab-xml">
+                        <div class="icon"><i class="fa fa-file-code"></i></div>
+                        <div><span class="label">Descargar XML</span><span class="sub">UBL 2.1 · DIAN</span></div>
+                    </a>
+                    {% endif %}
+                    {% if factura.sesion %}
+                    <a href="{{ url_for('ver_mesa', mesa_id=factura.sesion.mesa_id) }}" class="action-btn ab-back">
+                        <div class="icon"><i class="fa fa-utensils"></i></div>
+                        <div><span class="label">Ver Mesa</span><span class="sub">Mesa {{ factura.sesion.mesa.numero }}</span></div>
+                    </a>
+                    {% else %}
+                    {% set domicilio = factura.domicilios.first() if factura.domicilios else None %}
+                    {% if domicilio %}
+                    <a href="{{ url_for('ver_domicilio', domicilio_id=domicilio.id) }}" class="action-btn ab-back">
+                        <div class="icon"><i class="fa fa-motorcycle"></i></div>
+                        <div><span class="label">Ver Domicilio</span><span class="sub">Detalle del pedido</span></div>
+                    </a>
+                    {% endif %}
+                    {% endif %}
+                    <a href="{{ url_for('lista_facturas') }}" class="action-btn ab-back">
+                        <div class="icon"><i class="fa fa-list"></i></div>
+                        <div><span class="label">Todas las facturas</span><span class="sub">Volver al listado</span></div>
+                    </a>
+                    {% if current_user.rol == 'admin' %}
+                    <a href="{{ url_for('editar_factura', factura_id=factura.id) }}" class="action-btn ab-edit">
+                        <div class="icon"><i class="fa fa-pen"></i></div>
+                        <div><span class="label">Editar factura</span><span class="sub">Modificar datos</span></div>
+                    </a>
+                    <button onclick="abrirModal()" class="action-btn ab-delete">
+                        <div class="icon"><i class="fa fa-trash"></i></div>
+                        <div><span class="label">Eliminar</span><span class="sub">Acción irreversible</span></div>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen -->
+        <div class="side-card">
+            <div class="side-card-header">Resumen</div>
+            <div class="side-card-body">
+                <ul class="summary-list">
+                    <li>
+                        <span class="key">Número</span>
+                        <span class="val">{{ factura.numero_consecutivo }}</span>
+                    </li>
+                    <li>
+                        <span class="key">Fecha</span>
+                        <span class="val">{{ factura.fecha_emision.strftime('%d/%m/%Y') }}</span>
+                    </li>
+                    <li>
+                        <span class="key">Tipo</span>
+                        <span class="val">{{ 'Mesa' if factura.sesion else 'Domicilio' }}</span>
+                    </li>
+                    <li>
+                        <span class="key">Total</span>
+                        <span class="val orange">${{ "{:,.0f}".format(factura.total) }}</span>
+                    </li>
+                    <li>
+                        <span class="key">Estado</span>
+                        <span class="val {% if factura.estado_pago == 'pagada' %}green{% elif factura.estado_pago == 'pendiente' %}orange{% else %}red{% endif %}">
+                            {{ (factura.estado_pago or 'pagada')|capitalize }}
+                        </span>
+                    </li>
+                    {% if factura.es_electronica %}
+                    <li>
+                        <span class="key">FE DIAN</span>
+                        <span class="val green"><i class="fa fa-check-circle"></i> Generada</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+    </div><!-- /side-panel -->
+
+</div><!-- /page-wrap -->
+</div><!-- /screen-version -->
+
+
+<!-- ══ VERSIÓN IMPRESIÓN TÉRMICA ══ -->
+<div class="print-version">
+    <div class="factura-termica">
+        <div class="tc">
+            <strong>{{ config.nombre }}</strong><br>
+            NIT: {{ config.nit }}<br>
+            {{ config.direccion }}<br>
+            {{ config.ciudad }}<br>
+            Tel: {{ config.telefono }}<br>
+            {% if config.email %}{{ config.email }}<br>{% endif %}
+            {{ config.regimen }}<br>
+            {% if config.resolucion_dian %}{{ config.resolucion_dian }}<br>{% endif %}
+        </div>
+        <div class="sep"></div>
+        <div class="tc">
+            <strong>{% if factura.es_electronica %}FACTURA ELECTRÓNICA{% else %}FACTURA DE VENTA{% endif %}</strong><br>
+            <strong>No. {{ factura.numero_consecutivo }}</strong><br>
+            {{ factura.fecha_emision.strftime('%d/%m/%Y %I:%M %p') }}<br>
+            {% if factura.sesion %}Mesa: {{ factura.sesion.mesa.numero }}{% else %}DOMICILIO{% endif %}
+        </div>
+        <div class="sep"></div>
+        {% if factura.cliente_nombre or factura.cliente_documento %}
+        <div>
+            <strong>CLIENTE:</strong><br>
+            {% if factura.cliente_nombre %}{{ factura.cliente_nombre }}<br>{% endif %}
+            {% if factura.cliente_documento %}{{ factura.cliente_tipo_documento or 'Doc' }}: {{ factura.cliente_documento }}<br>{% endif %}
+        </div>
+        <div class="sep"></div>
+        {% endif %}
+        <table class="t-items">
+            <thead><tr><th class="tl">ITEM</th><th class="tc">CANT</th><th class="tr">VALOR</th></tr></thead>
+            <tbody>
+                {% if factura.sesion %}
+                    {% for pedido in factura.sesion.pedidos %}
+                    <tr>
+                        <td class="tl">{{ pedido.producto }}</td>
+                        <td class="tc">{{ pedido.cantidad }}</td>
+                        <td class="tr">${{ "{:,.0f}".format(pedido.total) }}</td>
+                    </tr>
+                    {% if pedido.notas %}<tr><td colspan="3" style="padding-left:8px;font-size:9px;">* {{ pedido.notas }}</td></tr>{% endif %}
+                    {% endfor %}
+                {% else %}
+                    {% set domicilio = factura.domicilios.first() if factura.domicilios else None %}
+                    {% if domicilio %}
+                        {% for item in domicilio.items %}
+                        <tr>
+                            <td class="tl">{{ item.producto_nombre }}</td>
+                            <td class="tc">{{ item.cantidad }}</td>
+                            <td class="tr">${{ "{:,.0f}".format(item.subtotal) }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr><td class="tl">Domicilio</td><td class="tc">1</td><td class="tr">${{ "{:,.0f}".format(domicilio.costo_domicilio) }}</td></tr>
+                    {% endif %}
+                {% endif %}
+            </tbody>
+        </table>
+        <div class="sep"></div>
+        <table class="t-tots">
+            <tr><td class="tr"><strong>SUBTOTAL:</strong></td><td class="tr">${{ "{:,.0f}".format(factura.subtotal) }}</td></tr>
+            {% if factura.iva and factura.iva > 0 %}<tr><td class="tr">IVA:</td><td class="tr">${{ "{:,.0f}".format(factura.iva) }}</td></tr>{% endif %}
+            {% if factura.propina and factura.propina > 0 %}<tr><td class="tr">Propina:</td><td class="tr">${{ "{:,.0f}".format(factura.propina) }}</td></tr>{% endif %}
+            <tr class="t-gran"><td class="tr"><strong>TOTAL:</strong></td><td class="tr"><strong>${{ "{:,.0f}".format(factura.total) }}</strong></td></tr>
+        </table>
+        <div class="sep"></div>
+        <div><strong>PAGO:</strong> {{ (factura.metodo_pago or 'EFECTIVO')|upper }}</div>
+        {% if factura.estado_pago == 'pendiente' %}<div><strong>CRÉDITO - PENDIENTE</strong></div>{% endif %}
+        {% if factura.notas %}<div class="sep"></div><div><strong>NOTAS:</strong> {{ factura.notas }}</div>{% endif %}
+        {% if factura.es_electronica and factura.cufe %}
+        <div class="sep"></div>
+        <div class="tc"><strong>FACTURA ELECTRÓNICA</strong></div>
+        <div style="font-size:8px;word-break:break-all;"><strong>CUFE:</strong> {{ factura.cufe }}</div>
+        {% if factura.qr_base64 %}
+        <div class="tc" style="margin-top:4px;">
+            <img src="data:image/png;base64,{{ factura.qr_base64 }}" alt="QR" style="width:70px;height:70px;">
+            <br><span style="font-size:8px;">Verificar en DIAN</span>
         </div>
         {% endif %}
-
-        <div class="separador"></div>
-
-        <!-- PIE DE PÁGINA -->
-        <div class="text-center mb-2">
-            <p class="mb-0 small">¡GRACIAS POR SU COMPRA!</p>
-            <p class="mb-0 small">Vuelva Pronto</p>
-            {% if factura.estado_pago != 'pendiente' %}
-            <p class="mb-0 small">{{ factura.fecha_emision.strftime('%d/%m/%Y %I:%M %p') }}</p>
-            {% endif %}
-        </div>
-
-        <div class="separador-doble"></div>
-
-        <!-- ESPACIO PARA CORTE -->
+        {% endif %}
+        <div class="sep"></div>
+        <div class="tc">¡GRACIAS POR SU VISITA!<br>Vuelva Pronto</div>
+        <div class="sep2"></div>
         <div class="corte"></div>
     </div>
 </div>
 
-<!-- Modal de confirmación de eliminación -->
+
+<!-- ══ MODAL ELIMINAR ══ -->
 {% if current_user.rol == 'admin' %}
-<div class="modal fade" id="modalEliminarFactura" tabindex="-1" aria-labelledby="modalEliminarFacturaLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="modalEliminarFacturaLabel">
-                    <i class="fas fa-exclamation-triangle"></i> Confirmar Eliminación
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal-overlay" id="modalEliminar">
+    <div class="modal-box">
+        <div class="modal-top">
+            <i class="fa fa-triangle-exclamation"></i>
+            <h3>Confirmar eliminación</h3>
+        </div>
+        <div class="modal-body">
+            <p>¿Estás seguro de que deseas eliminar la factura <strong>{{ factura.numero_consecutivo }}</strong>?</p>
+            <div class="modal-info">
+                <p><strong>Total:</strong> ${{ "{:,.0f}".format(factura.total) }}</p>
+                <p><strong>Fecha:</strong> {{ factura.fecha_emision.strftime('%d/%m/%Y') }}</p>
+                {% if factura.cliente_nombre %}<p><strong>Cliente:</strong> {{ factura.cliente_nombre }}</p>{% endif %}
+                {% if factura.sesion_id %}
+                <p style="margin-top:6px;">⚠️ Se reactivará la sesión de Mesa {{ factura.sesion.mesa.numero }} y los pedidos volverán a estado pendiente.</p>
+                {% else %}
+                <p style="margin-top:6px;">⚠️ El domicilio asociado quedará disponible para re-facturar.</p>
+                {% endif %}
             </div>
-            <div class="modal-body">
-                <div class="alert alert-warning mb-3">
-                    <h6 class="alert-heading mb-2">
-                        <i class="fas fa-exclamation-circle"></i> ¿Estás seguro de eliminar esta factura?
-                    </h6>
-                </div>
-                
-                <div class="mb-3">
-                    <p class="mb-1"><strong>Factura:</strong> <span class="badge bg-secondary">{{ factura.numero_consecutivo }}</span></p>
-                    <p class="mb-1"><strong>Total:</strong> <span class="text-success fw-bold">${{ "{:,.0f}".format(factura.total) }}</span></p>
-                    <p class="mb-1"><strong>Fecha:</strong> {{ factura.fecha_emision.strftime('%d/%m/%Y') }}</p>
-                    {% if factura.cliente_nombre %}
-                    <p class="mb-1"><strong>Cliente:</strong> {{ factura.cliente_nombre }}</p>
-                    {% endif %}
-                </div>
-                
-                <hr>
-                
-                <div class="alert alert-danger mb-0">
-                    <p class="fw-bold mb-2">
-                        <i class="fas fa-exclamation-triangle"></i> Esta acción realizará lo siguiente:
-                    </p>
-                    <ul class="mb-2">
-                        <li>Eliminará <strong>permanentemente</strong> esta factura</li>
-                        <li>Se quitará de los <strong>reportes de ingresos</strong></li>
-                        {% if factura.sesion_id %}
-                        <li>Reactivará la <strong>sesión de mesa #{{ factura.sesion.mesa.numero }}</strong></li>
-                        <li>Los pedidos volverán a estado <strong>"pendiente"</strong></li>
-                        {% else %}
-                        <li>Desvinculará el <strong>domicilio</strong> de esta factura</li>
-                        <li>El domicilio podrá ser re-facturado</li>
-                        {% endif %}
-                    </ul>
-                    <p class="text-danger mb-0">
-                        <small><i class="fas fa-info-circle"></i> <strong>Esta acción NO se puede deshacer.</strong></small>
-                    </p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times"></i> Cancelar
+            <p style="color:#DC2626;font-weight:600;font-size:0.82rem;">Esta acción no se puede deshacer.</p>
+        </div>
+        <div class="modal-footer-btns">
+            <button onclick="cerrarModal()" class="btn" style="background:#F3F4F6;color:#374151;border:1px solid #E5E7EB;">
+                Cancelar
+            </button>
+            <form method="POST" action="{{ url_for('eliminar_factura', factura_id=factura.id) }}" style="display:inline;">
+                <button type="submit" class="btn btn-red">
+                    <i class="fa fa-trash"></i> Eliminar definitivamente
                 </button>
-                <form method="POST" action="{{ url_for('eliminar_factura', factura_id=factura.id) }}" style="display: inline;">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash"></i> Sí, Eliminar Factura
-                    </button>
-                </form>
-            </div>
+            </form>
         </div>
     </div>
 </div>
 {% endif %}
 
-<style>
-/* Estilos para vista en pantalla */
-.factura-termica {
-    width: 80mm;
-    margin: 0 auto;
-    background: white;
-    padding: 10mm;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    font-family: 'Courier New', monospace;
-    font-size: 12px;
-}
+<script>
+    function abrirModal()  { document.getElementById('modalEliminar').classList.add('open'); }
+    function cerrarModal() { document.getElementById('modalEliminar').classList.remove('open'); }
+    document.getElementById('modalEliminar')?.addEventListener('click', function(e) {
+        if (e.target === this) cerrarModal();
+    });
+</script>
 
-.separador {
-    border-top: 1px dashed #000;
-    margin: 8px 0;
-}
-
-.separador-doble {
-    border-top: 2px solid #000;
-    margin: 8px 0;
-}
-
-.tabla-items {
-    width: 100%;
-    font-size: 11px;
-    margin-bottom: 8px;
-}
-
-.tabla-items th {
-    border-bottom: 1px solid #000;
-    padding: 4px 2px;
-    font-weight: bold;
-}
-
-.tabla-items td {
-    padding: 4px 2px;
-    vertical-align: top;
-}
-
-.tabla-totales {
-    width: 100%;
-    font-size: 12px;
-}
-
-.tabla-totales td {
-    padding: 4px 2px;
-}
-
-.total-final {
-    font-size: 14px;
-    border-top: 1px solid #000;
-    border-bottom: 1px solid #000;
-}
-
-.corte {
-    height: 20mm;
-}
-
-/* Estilos para impresión térmica */
-@media print {
-    body {
-        margin: 0;
-        padding: 0;
-    }
-
-    .d-print-none,
-    .modal {
-        display: none !important;
-    }
-
-    .factura-termica {
-        width: 80mm;
-        margin: 0;
-        padding: 2mm;
-        box-shadow: none;
-        font-size: 11px;
-    }
-
-    /* Forzar impresión en blanco y negro */
-    * {
-        color: #000 !important;
-        background: #fff !important;
-    }
-
-    h3 {
-        font-size: 14px;
-        margin: 2px 0;
-    }
-
-    h4 {
-        font-size: 13px;
-        margin: 2px 0;
-    }
-
-    p, td, th {
-        font-size: 11px;
-        margin: 1px 0;
-    }
-
-    .small {
-        font-size: 10px;
-    }
-
-    .separador {
-        border-top: 1px dashed #000;
-        margin: 4px 0;
-    }
-
-    .separador-doble {
-        border-top: 2px solid #000;
-        margin: 4px 0;
-    }
-
-    .tabla-items th {
-        border-bottom: 1px solid #000;
-    }
-
-    .total-final {
-        border-top: 1px solid #000;
-        border-bottom: 1px solid #000;
-    }
-
-    /* Evitar saltos de página */
-    .factura-termica {
-        page-break-inside: avoid;
-    }
-
-    tr {
-        page-break-inside: avoid;
-    }
-}
-
-/* Para impresoras de 58mm (más pequeñas) */
-@media print and (max-width: 58mm) {
-    .factura-termica {
-        width: 58mm;
-        font-size: 10px;
-    }
-
-    h3 {
-        font-size: 12px;
-    }
-
-    h4 {
-        font-size: 11px;
-    }
-
-    p, td, th {
-        font-size: 9px;
-    }
-
-    
-    
-}
-</style>
-{% endblock %}
+</body>
+</html>
