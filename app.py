@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 import sys
 import logging
 from zoneinfo import ZoneInfo          # Python 3.9+ (incluido, sin instalar nada)
+import facturacion_electronica as fe_dian
 
 ZONA_COLOMBIA = ZoneInfo("America/Bogota")
 
@@ -200,7 +201,17 @@ class Factura(db.Model):
     fecha_pago_real = db.Column(db.DateTime, nullable=True)  # Cuándo pagó realmente
     saldo_pendiente = db.Column(db.Float, default=0)  # Si pagó parcialmente
     fecha_emision = db.Column(db.DateTime, default=ahora)
-    
+
+    # ========== FACTURACIÓN ELECTRÓNICA DIAN ==========
+    es_electronica = db.Column(db.Boolean, default=False)
+    cufe = db.Column(db.String(200), nullable=True)
+    xml_content = db.Column(db.Text, nullable=True)
+    qr_base64 = db.Column(db.Text, nullable=True)
+    cliente_tipo_documento = db.Column(db.String(10), default='CC')  # CC, NIT, CE, PP, TI
+    cliente_email = db.Column(db.String(200), nullable=True)
+    cliente_direccion = db.Column(db.String(300), nullable=True)
+    cliente_ciudad = db.Column(db.String(100), nullable=True)
+
     sesion = db.relationship('Sesion', backref='facturas')
 
 # Modelo para configuración del restaurante (agregar con los otros modelos)
@@ -217,6 +228,18 @@ class ConfiguracionRestaurante(db.Model):
     rango_facturacion = db.Column(db.String(100))
     iva_porcentaje = db.Column(db.Float, default=19.0)
     logo_url = db.Column(db.String(500))
+
+    # ========== FACTURACIÓN ELECTRÓNICA DIAN ==========
+    numero_resolucion = db.Column(db.String(50), nullable=True)
+    prefijo_facturacion = db.Column(db.String(20), default='FACT')
+    clave_tecnica = db.Column(db.String(200), nullable=True)
+    software_id = db.Column(db.String(200), nullable=True)
+    software_pin = db.Column(db.String(200), nullable=True)
+    ambiente_dian = db.Column(db.String(1), default='2')  # "1"=producción, "2"=habilitación
+    tipo_persona = db.Column(db.String(20), default='juridica')  # juridica / natural
+    codigo_regimen = db.Column(db.String(20), default='O-13')  # O-13=resp IVA, O-47=no resp
+    departamento = db.Column(db.String(100), nullable=True)
+    ciudad_nombre = db.Column(db.String(100), nullable=True)
 
 class Presupuesto(db.Model):
     """
@@ -697,30 +720,71 @@ def facturar_sesion(sesion_id):
         # Saldo pendiente
         saldo_pendiente = total if estado_pago == 'pendiente' else 0
         
-        # Crear factura (sin sesion_id porque es domicilio)
+        # Datos electrónicos (opcionales)
+        es_electronica = request.form.get('es_electronica') == '1'
+        cliente_tipo_documento = request.form.get('cliente_tipo_documento', 'CC')
+        cliente_email = request.form.get('cliente_email', '')
+        cliente_direccion = request.form.get('cliente_direccion', '')
+        cliente_ciudad = request.form.get('cliente_ciudad', '')
+
+        # Crear factura
         factura = Factura(
             numero_consecutivo=numero_consecutivo,
-            sesion_id=sesion.id,  # ✅ ESTA SÍ es una sesión
+            sesion_id=sesion.id,
             subtotal=subtotal,
             iva=iva,
             propina=propina,
             total=total,
-            metodo_pago=metodo_pago,  # ✅ viene del formulario
-            cliente_nombre=cliente_nombre,  # ✅ viene del formulario
+            metodo_pago=metodo_pago,
+            cliente_nombre=cliente_nombre,
             cliente_documento=cliente_documento,
-            notas=notas,       
+            notas=notas,
+            es_electronica=es_electronica,
+            cliente_tipo_documento=cliente_tipo_documento,
+            cliente_email=cliente_email,
+            cliente_direccion=cliente_direccion,
+            cliente_ciudad=cliente_ciudad,
         )
+
+        # Generar CUFE, XML y QR si es factura electrónica
+        if es_electronica and config.clave_tecnica:
+            try:
+                cufe = fe_dian.generar_cufe(factura, config.nit, config.clave_tecnica,
+                                             config.ambiente_dian or '2')
+                items = [
+                    {
+                        'descripcion': p.producto,
+                        'cantidad': p.cantidad,
+                        'precio_unitario': p.precio_unitario,
+                        'subtotal': p.cantidad * p.precio_unitario,
+                        'iva_porcentaje': 0,
+                        'iva_valor': 0,
+                    }
+                    for p in sesion.pedidos
+                ]
+                xml_content = fe_dian.generar_xml_ubl(factura, config, cufe, items,
+                                                       config.ambiente_dian or '2')
+                url_qr = fe_dian.url_verificacion_dian(cufe, config.ambiente_dian or '2')
+                qr_b64 = fe_dian.generar_qr_base64(url_qr)
+
+                factura.cufe = cufe
+                factura.xml_content = xml_content
+                factura.qr_base64 = qr_b64
+            except Exception as e:
+                logger.error(f"Error generando datos FE: {e}")
+                flash(f'Factura creada, pero error en datos electrónicos: {e}', 'warning')
+
         # Actualizar sesión
         sesion.total = total
         sesion.activa = False
         sesion.fecha_fin = ahora()
-        
+
         # Marcar todos los pedidos como pagados (actualización en bloque)
         db.session.query(Pedido).filter(Pedido.sesion_id == sesion.id).update({"pagado": True, "estado": "entregado"}, synchronize_session=False)
-        
+
         db.session.add(factura)
         db.session.commit()
-        
+
         flash(f'Factura {numero_consecutivo} generada exitosamente', 'success')
         return redirect(url_for('ver_factura', factura_id=factura.id))
     
@@ -763,10 +827,29 @@ def ver_factura(factura_id):
         except:
             desglose = None
     
-    return render_template("ver_factura.html", 
-                         factura=factura, 
+    return render_template("ver_factura.html",
+                         factura=factura,
                          config=config,
                          desglose=desglose)
+
+
+@app.route("/factura/<int:factura_id>/xml")
+@login_required
+def descargar_xml_factura(factura_id):
+    """Descarga el XML UBL 2.1 de una factura electrónica."""
+    factura = Factura.query.get_or_404(factura_id)
+
+    if not factura.es_electronica or not factura.xml_content:
+        flash('Esta factura no tiene datos de facturación electrónica', 'error')
+        return redirect(url_for('ver_factura', factura_id=factura_id))
+
+    nombre_archivo = f"FE_{factura.numero_consecutivo}.xml"
+    return Response(
+        factura.xml_content,
+        mimetype='application/xml',
+        headers={'Content-Disposition': f'attachment; filename={nombre_archivo}'}
+    )
+
 
 @app.route("/facturas")
 @login_required
@@ -1161,7 +1244,19 @@ def configuracion_restaurante():
         config.rango_facturacion = request.form.get("rango_facturacion", "")
         config.iva_porcentaje = request.form.get("iva_porcentaje", 19.0, type=float)
         config.logo_url = request.form.get("logo_url", "")
-        
+
+        # Facturación electrónica DIAN
+        config.numero_resolucion = request.form.get("numero_resolucion", "")
+        config.prefijo_facturacion = request.form.get("prefijo_facturacion", "FACT")
+        config.clave_tecnica = request.form.get("clave_tecnica", "")
+        config.software_id = request.form.get("software_id", "")
+        config.software_pin = request.form.get("software_pin", "")
+        config.ambiente_dian = request.form.get("ambiente_dian", "2")
+        config.tipo_persona = request.form.get("tipo_persona", "juridica")
+        config.codigo_regimen = request.form.get("codigo_regimen", "O-13")
+        config.departamento = request.form.get("departamento", "")
+        config.ciudad_nombre = request.form.get("ciudad_nombre", "")
+
         db.session.commit()
         flash('Configuración actualizada exitosamente', 'success')
         return redirect(url_for('configuracion_restaurante'))
@@ -3264,10 +3359,17 @@ def facturar_domicilio(domicilio_id):
             if fecha_vencimiento_str and estado_pago == 'pendiente':
                 fecha_vencimiento = datetime.strptime(fecha_vencimiento_str, '%Y-%m-%d').date()
             
+            # Datos electrónicos (opcionales)
+            es_electronica = request.form.get('es_electronica') == '1'
+            cliente_tipo_documento = request.form.get('cliente_tipo_documento', 'CC')
+            cliente_email_fe = request.form.get('cliente_email', '')
+            cliente_direccion_fe = request.form.get('cliente_direccion', '')
+            cliente_ciudad_fe = request.form.get('cliente_ciudad', '')
+
             # Crear factura (sin sesion_id porque es domicilio)
             factura = Factura(
                 numero_consecutivo=numero_consecutivo,
-                sesion_id=None,  # NULL para domicilios
+                sesion_id=None,
                 subtotal=subtotal,
                 iva=iva,
                 propina=propina,
@@ -3279,18 +3381,61 @@ def facturar_domicilio(domicilio_id):
                 estado_pago=estado_pago,
                 fecha_vencimiento=fecha_vencimiento,
                 fecha_pago_real=ahora() if estado_pago == 'pagada' else None,
-                saldo_pendiente=total if estado_pago == 'pendiente' else 0
+                saldo_pendiente=total if estado_pago == 'pendiente' else 0,
+                es_electronica=es_electronica,
+                cliente_tipo_documento=cliente_tipo_documento,
+                cliente_email=cliente_email_fe,
+                cliente_direccion=cliente_direccion_fe,
+                cliente_ciudad=cliente_ciudad_fe,
             )
-            
+
             db.session.add(factura)
             db.session.flush()
-            
+
+            # Generar CUFE, XML y QR si es factura electrónica
+            if es_electronica and config.clave_tecnica:
+                try:
+                    cufe = fe_dian.generar_cufe(factura, config.nit, config.clave_tecnica,
+                                                 config.ambiente_dian or '2')
+                    items = [
+                        {
+                            'descripcion': it.producto_nombre,
+                            'cantidad': it.cantidad,
+                            'precio_unitario': it.precio_unitario,
+                            'subtotal': it.subtotal,
+                            'iva_porcentaje': 0,
+                            'iva_valor': 0,
+                        }
+                        for it in domicilio.items
+                    ]
+                    # Agregar costo de domicilio como línea extra
+                    if domicilio.costo_domicilio:
+                        items.append({
+                            'descripcion': 'Costo de domicilio',
+                            'cantidad': 1,
+                            'precio_unitario': domicilio.costo_domicilio,
+                            'subtotal': domicilio.costo_domicilio,
+                            'iva_porcentaje': 0,
+                            'iva_valor': 0,
+                        })
+                    xml_content = fe_dian.generar_xml_ubl(factura, config, cufe, items,
+                                                           config.ambiente_dian or '2')
+                    url_qr = fe_dian.url_verificacion_dian(cufe, config.ambiente_dian or '2')
+                    qr_b64 = fe_dian.generar_qr_base64(url_qr)
+
+                    factura.cufe = cufe
+                    factura.xml_content = xml_content
+                    factura.qr_base64 = qr_b64
+                except Exception as e:
+                    logger.error(f"Error generando datos FE domicilio: {e}")
+                    flash(f'Factura creada, pero error en datos electrónicos: {e}', 'warning')
+
             # Asociar factura al domicilio
             domicilio.factura_id = factura.id
             domicilio.pagado = True
-            
+
             db.session.commit()
-            
+
             flash(f'Factura {numero_consecutivo} generada exitosamente', 'success')
             return redirect(url_for('ver_factura', factura_id=factura.id))
             
